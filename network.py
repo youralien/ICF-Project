@@ -5,7 +5,7 @@
 
 class City:
 	def __init__(self):
-		pass
+		x = 10
 		
 
 if __name__ == "__main__":
