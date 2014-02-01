@@ -3,9 +3,11 @@
 # Franklin W. Olin College of Engineering
 # Spring 2014	
 
+
+
 class City:
 	def __init__(self):
-		pass
+		y = 10
 		
 
 if __name__ == "__main__":
