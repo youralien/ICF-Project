@@ -7,7 +7,7 @@
 
 class City:
 	def __init__(self):
-		y = 10
+		x = 10
 		
 
 if __name__ == "__main__":
