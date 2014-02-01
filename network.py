@@ -3,12 +3,14 @@
 # Franklin W. Olin College of Engineering
 # Spring 2014	
 
-
-
-class City:
+class Airport:
 	def __init__(self):
 		x = 10
+
+class Edge:
+	def __init__(self):
+		pass
 		
 
 if __name__ == "__main__":
-	c = City()
+	pass
