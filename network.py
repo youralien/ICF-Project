@@ -21,10 +21,10 @@ def LoadBookings(n=10000):
 
 	returns: Bookings Data Frame
 	"""
-	if n =='all':
+	if n == 'all':
 		return pd.read_csv("Data/BKGDAT.txt")
 	else:
-		return pd.read_csv("Data/BKGDAT.txt", nrows = n)
+		return pd.read_csv("Data/BKGDAT.txt", nrows = int(n))
 
 def FilterByOriginDestination(df):
 	"""
@@ -47,7 +47,8 @@ def CreateNetwork(df_groupby):
 	return network
 
 if __name__ == "__main__":
-	bookings = FilterByOriginDestination(LoadBookings())
+	num_records = raw_input("How many records should compose this network? (i.e 1000 or all): \n")
+	bookings = FilterByOriginDestination(LoadBookings(num_records))
 	flight_network = CreateNetwork(bookings)
 	print flight_network
 
