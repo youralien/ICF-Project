@@ -21,7 +21,10 @@ def LoadBookings(n=10000):
 
 	returns: Bookings Data Frame
 	"""
-	return pd.read_csv("Data/BKGDAT.txt", nrows = n)
+	if n =='all':
+		return pd.read_csv("Data/BKGDAT.txt")
+	else:
+		return pd.read_csv("Data/BKGDAT.txt", nrows = n)
 
 def FilterByOriginDestination(df):
 	"""
