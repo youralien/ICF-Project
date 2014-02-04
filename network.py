@@ -15,40 +15,56 @@ class Edge():
 	def __init__(self):
 		pass
 
-def LoadBookings(n=10000):
-	"""
-	n: number of bookings to load from file
+class Network():
+	def __init__(self, csvfile='Data/BKGDAT.txt'):
+		self.csvfile = csvfile
 
-	returns: Bookings Data Frame
-	"""
-	if n == 'all':
-		return pd.read_csv("Data/BKGDAT.txt")
-	else:
-		return pd.read_csv("Data/BKGDAT.txt", nrows = int(n))
+	def loadBookings(self, n):
+		"""
+		n: Number of lines to read from self.csvfile
 
-def FilterByOriginDestination(df):
-	"""
-	df: bookings, a pandas data frame
+		returns: Pandas DataFrame object with n rows of bookings
+		"""
 
-	returns: Bookings grouped by Origin and Destination
-	"""
-	return df.groupby(['ORG', 'DES'], sort = False)
+		if n == 'all':
+			return pd.read_csv(self.csvfile)
+		else:
+			return pd.read_csv(self.csvfile, nrows=int(n))
 
-def CreateNetwork(df_groupby):
-	"""
-	df_groupby: dataframe groupby object
+	def filterByOrgDes(self, entities):
+		"""
+		"""
+		return entities.groupby(['ORG', 'DES'], sort=False)
 
-	returns: a network, in the form of a dictionary, mapping a particular 
-	flight path ('ORG', 'DES') to number of people who traveled on the path. 
-	"""
-	network = {}
-	for flight_path, group in df_groupby:
-		network[flight_path] = len(group)
-	return network
+	def entitiesBetweenCities(self, entities):
+
+		flights = self.filterByOrgDes(entities)
+		network = {}
+		for flight_path, group in flights:
+			network[flight_path] = len(group)
+
+		return network
+
+	def filterUniqueFlights(self, entities):
+		return entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
+															
+	def countFlightsBetweenCities(self, entities):
+		
+		flights = self.filterUniqueFlights(entities)
+		num_flights = {}
+		for flight, group in flights:
+			num_flights[flight[2:]] = num_flights.get(flight[2:], 0) + 1
+
+		return num_flights
+
+def main():
+	num_records = 'all'
+	n = Network()
+	entities = n.loadBookings(num_records)
+	print n.countFlightsBetweenCities(entities)
 
 if __name__ == "__main__":
-	num_records = raw_input("How many records should compose this network? (i.e 1000 or all): \n")
-	bookings = FilterByOriginDestination(LoadBookings(num_records))
-	flight_network = CreateNetwork(bookings)
-	print flight_network
+	main()
+
+
 
