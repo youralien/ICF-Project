@@ -54,6 +54,9 @@ class FeatureFilter():
 		"""
 		return entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
 
+	def filterUniqueFlightsAndBookings(self, entities):
+		return entities.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
+
 class Network():
 	"""
 	"""
@@ -82,12 +85,23 @@ class Network():
 		return num_flights
 
 	def countMeanUtilization(self):
-		flights = self.f.filterUniqueFlights(self.entities)
+		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
+		total_booked = {}
+		total_seats = {}
 		utilization = {}
-		for flight, group in flights:
-			total_booked = group['TOTALBKD'].mean()
-			capacity = group['CAP'].mean()
-			utilization[flight] = float(total_booked) / capacity
+
+		for booking_group, data in flights:
+
+			flight = booking_group[0:4]
+			total_booked[flight] = total_booked.get(flight, 0) + data['TOTALBKD'].mean()
+			total_seats[flight] = total_seats.get(flight, 0) + data['CAP'].mean()
+
+		for booking_group, data in flights:
+			flight = booking_group[0:4]
+			utilization[flight] = float(total_booked[flight]) / total_seats[flight]
+
+		print total_booked[('3/28/2013 0:00:00', 910, 'BEY', 'DXB')]
+		print total_seats[('3/28/2013 0:00:00', 910, 'BEY', 'DXB')]
 		
 		return utilization
 
@@ -96,9 +110,15 @@ class Network():
 def main():
 	num_records = 'all'
 	n = Network(num_records)
-	x = n.countMeanUtilization()
-	for key, value in x.items():
-		print key, value
+	utilizations = n.countMeanUtilization()
+
+	# for flight, utilization in utilizations.items():
+	# 	print flight, utilization
+	# print n.entities.loc[:, 'TOTALBKD']
+		
+	# x = n.countMeanUtilization()
+	# for key, value in x.items():
+	# 	print key, value
 
 
 if __name__ == "__main__":
