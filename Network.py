@@ -105,24 +105,41 @@ class Network():
 		
 		return utilization
 
+	def timeseries(self):
+		flights = self.f.filterUniqueFlights(self.entities)
+		time_series = {}
+		for flight, group in flights:
+			location = flight[2:]
+			time_series[location] = time_series.get(location, {})
+			time_series[location][flight[0]] = time_series[location].get(flight[0], 0) + 1
+
+		return time_series
+		# flights = self.f.filterByOrgDes(self.entities)
+		# dictionary = {}
+		# for flight_path, groupedByPath in flights: #group is a dataframe
+		# 	groupedByDate = groupedByPath.groupby(['DATE'])
+		# 	for date, groupByDate in groupedByDate:
+		# 		print groupByDate
+
 
 
 def main():
 	num_records = 'all'
 	n = Network(num_records)
-	utilizations = n.countMeanUtilization()
-
+	# utilizations = n.countMeanUtilization()
 	# for flight, utilization in utilizations.items():
 	# 	print flight, utilization
 	# print n.entities.loc[:, 'TOTALBKD']
-		
+	x = n.timeseries()
 	# x = n.countMeanUtilization()
 	# for key, value in x.items():
 	# 	print key, value
 
 
 if __name__ == "__main__":
-	main()
+	num_records = 'all'
+	n = Network(num_records)
+	x = n.timeseries()
 
 
 
