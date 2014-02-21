@@ -14,19 +14,19 @@ class FeatureFilter():
 		self._filteredByUniqueFlights = None
 		self._filteredByUniqueFlightsAndBookings = None
 
-	def getFilterByOrgDes(self):
+	def getUniqueOrgDes(self):
 		if self._filteredByOrgDes == None:
 			self._filteredByOrgDes = self._filterByOrgDes()
 
 		return self._filteredByOrgDes
 
-	def getFilterUniqueFlights(self):
+	def getUniqueFlights(self):
 		if self._filteredByUniqueFlights == None:
 			self._filteredByUniqueFlights = self._filterUniqueFlights()
 
 		return self._filteredByUniqueFlights
 
-	def getFilterUniqueFlightsAndBookings(self):
+	def getUniqueFlightsAndBookings(self):
 		if self._filteredByUniqueFlightsAndBookings == None:
 			self._filteredByUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings()
 
