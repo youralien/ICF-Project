@@ -27,8 +27,8 @@ class FeatureFilter():
 		return self._filteredByUniqueFlights
 
 	def getFilterUniqueFlightsAndBookings(self):
-		if self._filterUniqueFlightsAndBookings == None:
-			self._filterUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings()
+		if self._filteredByUniqueFlightsAndBookings == None:
+			self._filteredByUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings()
 
 		return self._filteredByUniqueFlightsAndBookings
 
@@ -44,7 +44,7 @@ class FeatureFilter():
 		else:
 			return pd.read_csv(self.csvfile, nrows=int(n))
 
-	def _filterByOrgDes(self, entities):
+	def _filterByOrgDes(self):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
@@ -53,7 +53,7 @@ class FeatureFilter():
 		"""
 		return self.entities.groupby(['ORG', 'DES'], sort=False)
 
-	def _filterUniqueFlights(self, entities):
+	def _filterUniqueFlights(self):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
@@ -62,7 +62,7 @@ class FeatureFilter():
 		"""
 		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
 
-	def _filterUniqueFlightsAndBookings(self, entities):
+	def _filterUniqueFlightsAndBookings(self):
 		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
 
 def main():

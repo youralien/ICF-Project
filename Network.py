@@ -66,10 +66,34 @@ class Network():
 
 			capacities[flight][cabin] = data['CAP'].mean()
 
-		return capacities	
+		return capacities
 
-	def countMeanUtilization(self):
-		pass
+	def countTotalBookedPerFlight(self):
+		flights = self.f.getFilterUniqueFlightsAndBookings()
+		total_bookings = {}
+		for booking_group, data in flights:
+			flight = booking_group[0:4]
+			bc = booking_group[4]
+			cabin, rank = self.utils.mapBookingClassToCabinHierarchy(bc)
+
+			if flight not in total_bookings:
+				total_bookings[flight] = {}
+
+			total_bookings[flight][cabin] = data['TOTALBKD'].mean()
+
+		return total_bookings	
+
+	def countFinalCabinLoadFactor(self): # total booked / capacity per flight
+		capacities = self.countFinalCabinCapacityPerFlight()
+		total_bookings = self.countTotalBookedPerFlight()
+		cabin_load_factors = {}
+
+		for flight in capacities.keys():
+			total_cap = sum(capacities[flight].values())
+			total_booked = sum(total_bookings[flight].values())
+			cabin_load_factors[flight] = total_booked / total_cap
+
+		return cabin_load_factors
 		
 
 	def countOverbookedAndCabinLoadFactor(self):
