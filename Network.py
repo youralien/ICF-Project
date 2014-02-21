@@ -9,13 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 
-class Airport:
-	def __init__(self, airport_code):
-		pass
-
-class Edge():
-	def __init__(self):
-		pass
 
 class FeatureFilter():
 	"""
@@ -263,15 +256,16 @@ def main():
 	# 	print key, value
 
 if __name__ == "__main__":
-	num_records = '1000'
-	n = Network(num_records)
-	utilization = n.countOverbookedAndCabinLoadFactor()
-	print utilization
-	x, y = zip(*utilization)
-	plt.scatter(x, y)
-	plt.show()	
+	# num_records = '1000'
+	# n = Network(num_records)
+	# utilization = n.countOverbookedAndCabinLoadFactor()
+	# print utilization
+	# x, y = zip(*utilization)
+	# plt.scatter(x, y)
+	# plt.show()	
 
 	# plt.plot(utilization)
 	# plt.xlabel('Cabin Load Factor (units?)')
 	# plt.ylabel('Overbooking (units?)')
 	# plt.sho
+	main()
