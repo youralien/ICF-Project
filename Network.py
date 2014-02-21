@@ -123,7 +123,7 @@ class Network():
 			if AUTH > CAP: # Overbooking occurs when AUTH > CAP
 
 				flight = booking_group[:4]
-				percent_overbooked = float(AUTH - CAP)/CAP
+				percent_overbooked = float(AUTH)/CAP
 				cabin_load_factor = float(data['TOTALBKD'].mean())/CAP
 				ans.append((cabin_load_factor, percent_overbooked))
 
@@ -190,6 +190,22 @@ def main():
 	# for key, value in x.items():
 	# 	print key, value
 
+def summaryStatistics():
+	num_records = 'all'
+	n = Network(num_records)
+
+	num_total_flights = len(n.f.filterUniqueFlights(n.entities))
+	num_of_flights_between_cities = n.countFlightsBetweenCities()
+	num_routes = len(num_of_flights_between_cities.keys())
+
+	f = open('ICF Summary Statistics.txt', 'w')
+
+	f.write("Total Number of Flights: " + str(num_total_flights) + "\n")
+	f.write("Total Number of Directional Routes: " + str(num_routes) + "\n")
+	f.writelines([str(citypath) + ': ' + str(num_flights) + "\n" for citypath, num_flights in num_of_flights_between_cities.items()])
+	
+	f.close()
+
 def timeVsFlights():
 	num_records = 'all'
 	n = Network(num_records)
@@ -204,6 +220,7 @@ def overbookingVsCabinLoadFactor():
 	num_records = 'all'
 	n = Network(num_records)
 	utilization = n.countOverbookedAndCabinLoadFactor()
+	print utilization
 	plt.plot(utilization)
 	plt.xlabel('Cabin Load Factor (units?)')
 	plt.ylabel('Overbooking (units?)')
@@ -211,7 +228,17 @@ def overbookingVsCabinLoadFactor():
 
 
 if __name__ == "__main__":
-	overbookingVsCabinLoadFactor()
+	num_records = '1000'
+	n = Network(num_records)
+	utilization = n.countOverbookedAndCabinLoadFactor()
+	print utilization
+	x, y = zip(*utilization)
+	plt.scatter(x, y)
+	plt.show()	
 
+	# plt.plot(utilization)
+	# plt.xlabel('Cabin Load Factor (units?)')
+	# plt.ylabel('Overbooking (units?)')
+	# plt.show()
 
 
