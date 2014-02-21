@@ -16,10 +16,33 @@ class FeatureFilter():
 		CSV file and groups rows according to various feature values.
 	"""	
 
-	def __init__(self, csvfile='Data/BKGDAT_Filtered.txt'):
+	def __init__(self, n, csvfile='Data/BKGDAT_Filtered.txt'):
 		self.csvfile = csvfile
+		self.entities = self._loadBookings(n)
 
-	def loadBookings(self, n):
+		self._filteredByOrgDes = None
+		self._filteredByUniqueFlights = None
+		self._filteredByUniqueFlightsAndBookings = None
+
+	def getFilterByOrgDes(self):
+		if self._filteredByOrgDes == None:
+			self._filteredByOrgDes = self._filterByOrgDes()
+
+		return self._filteredByOrgDes
+
+	def getFilterUniqueFlights(self):
+		if self._filteredByUniqueFlights == None:
+			self._filteredByUniqueFlights = self._filterUniqueFlights()
+
+		return self._filteredByUniqueFlights
+
+	def getFilterUniqueFlightsAndBookings(self):
+		if self._filterUniqueFlightsAndBookings == None:
+			self._filterUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings()
+
+		return self._filteredByUniqueFlightsAndBookings
+
+	def _loadBookings(self, n):
 		"""
 		n: Number of lines to read from self.csvfile
 
@@ -31,41 +54,40 @@ class FeatureFilter():
 		else:
 			return pd.read_csv(self.csvfile, nrows=int(n))
 
-	def filterByOrgDes(self, entities):
+	def _filterByOrgDes(self, entities):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
 		returns: Pandas DataFrame object with bookings grouped by departure and
 				 arrival locations (groups passengers by route traveled)
 		"""
-		return entities.groupby(['ORG', 'DES'], sort=False)
+		return self.entities.groupby(['ORG', 'DES'], sort=False)
 
-	def filterUniqueFlights(self, entities):
+	def _filterUniqueFlights(self, entities):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
 		returns: Pandas DataFrame object with bookings grouped into unique 
 				 flight objects (groups passengers on a per-flight basis)
 		"""
-		return entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
+		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
 
-	def filterUniqueFlightsAndBookings(self, entities):
-		return entities.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
+	def _filterUniqueFlightsAndBookings(self, entities):
+		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
 
 class Network():
 	"""
 	"""
 
 	def __init__(self, n):
-		self.f = FeatureFilter()
-		self.entities = self.f.loadBookings(n)
+		self.f = FeatureFilter(n)
 		self.util = Utils()
 
 	def countEntitiesBetweenCities(self):
 		"""
 
 		"""
-		flights = self.f.filterByOrgDes(self.entities)
+		flights = self.f.getFilterByOrgDes()
 		network = {}
 		for flight_path, group in flights:
 			network[flight_path] = len(group)
@@ -73,7 +95,7 @@ class Network():
 		return network
 															
 	def countFlightsBetweenCities(self):
-		flights = self.f.filterUniqueFlights(self.entities)
+		flights = self.f.getFilterUniqueFlights()
 		num_flights = {}
 		for flight, group in flights:
 			num_flights[flight[2:]] = num_flights.get(flight[2:], 0) + 1
@@ -81,7 +103,7 @@ class Network():
 		return num_flights
 
 	def countTotalPassengersPerFlight(self):
-		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
+		flights = self.f.getFilterUniqueFlightsAndBookings()
 		total_booked = {}
 		total_seats = {}
 		utilization = {}
@@ -99,7 +121,7 @@ class Network():
 		return utilization
 
 	def countCabinCapacityPerFlight(self):
-		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
+		flights = self.f.getFilterUniqueFlightsAndBookings()
 		capacities = {}
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
@@ -126,7 +148,7 @@ class Network():
 
 		returns: list of tuples (cabin_load_factor, percent_overbooked)
 		"""
-		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
+		flights = self.f.getFilterUniqueFlightsAndBookings()
 		
 		ans = []
 
