@@ -3,6 +3,7 @@
 # Franklin W. Olin College of Engineering
 # Spring 2014	
 
+import csv
 import pandas as pd 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -65,6 +66,7 @@ class Network():
 	def __init__(self, n):
 		self.f = FeatureFilter()
 		self.entities = self.f.loadBookings(n)
+		self.util = Utils()
 
 	def countEntitiesBetweenCities(self):
 		"""
@@ -85,7 +87,7 @@ class Network():
 
 		return num_flights
 
-	def countMeanUtilization(self):
+	def countTotalPassengersPerFlight(self):
 		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
 		total_booked = {}
 		total_seats = {}
@@ -100,11 +102,30 @@ class Network():
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
 			utilization[flight] = float(total_booked[flight]) / total_seats[flight]
-
-		print total_booked[('3/28/2013', 910, 'BEY', 'DXB')]
-		print total_seats[('3/28/2013', 910, 'BEY', 'DXB')]
 		
 		return utilization
+
+	def countCabinCapacityPerFlight(self):
+		flights = self.f.filterUniqueFlightsAndBookings(self.entities)
+		capacities = {}
+		for booking_group, data in flights:
+			flight = booking_group[0:4]
+			bc = booking_group[4]
+			cabin, rank = self.util.mapBookingClassToCabinHierarchy(bc)
+
+			if flight not in capacities:
+				capacities[flight] = {}
+
+			capacities[flight][cabin] = data['CAP'].mean()
+
+		return capacities
+			
+
+			
+
+	def countMeanUtilization(self):
+		pass
+		
 
 	def countOverbookedAndCabinLoadFactor(self):
 		""" Determines which flights overbooking occurs; calculates the 
@@ -177,19 +198,6 @@ class Visualizer():
 		day = datetime.date(year, month, day) 
 		return day.strftime("%A")
 
-def main():
-	num_records = 'all'
-	n = Network(num_records)
-	# utilizations = n.countMeanUtilization()
-	# for flight, utilization in utilizations.items():
-	# 	print flight, utilization
-	# print n.entities.loc[:, 'TOTALBKD']
-	x = n.timeseries()
-
-	# x = n.countMeanUtilization()
-	# for key, value in x.items():
-	# 	print key, value
-
 def timeVsFlights():
 	num_records = 'all'
 	n = Network(num_records)
@@ -209,9 +217,37 @@ def overbookingVsCabinLoadFactor():
 	plt.ylabel('Overbooking (units?)')
 	plt.show()
 
+def testTransform():
+	num_records = 'all'
+	n = Network(num_records)
+	flights_and_bookings = n.f.filterUniqueFlights(n.entities)
+
+class Utils():
+	def mapBookingClassToCabinHierarchy(self, bc):
+		with open('Data/BC_Hierarchy.csv', 'r') as bc_file:
+			reader = csv.reader(bc_file)
+			for rank, booking_class, cabin in reader:
+				if bc == booking_class:
+					return cabin, rank
+
+		raise Exception('Booking Class not found')
+
+def main():
+	num_records = 'all'
+	n = Network(num_records)
+	# utilizations = n.countMeanUtilization()
+	# for flight, utilization in utilizations.items():
+	# 	print flight, utilization
+	# print n.entities.loc[:, 'TOTALBKD']
+	print n.countCabinCapacityPerFlight()
+
+	# x = n.countMeanUtilization()
+	# for key, value in x.items():
+	# 	print key, value
 
 if __name__ == "__main__":
-	overbookingVsCabinLoadFactor()
+	# overbookingVsCabinLoadFactor()
+	main()
 
 
 
