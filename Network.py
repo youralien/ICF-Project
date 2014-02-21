@@ -12,8 +12,8 @@ class Network():
 	"""
 	"""
 
-	def __init__(self, n):
-		self.f = FeatureFilter(n)
+	def __init__(self, nrows):
+		self.f = FeatureFilter(nrows)
 		self.utils = Utils()
 
 	def countEntitiesBetweenCities(self):
