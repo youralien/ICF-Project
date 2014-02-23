@@ -54,7 +54,7 @@ class Network():
 		return utilization
 
 	def countCabinCapacityPerFlight(self):
-		flights = self.f.getFilterUniqueFlightsAndBookings()
+		flights = self.f.getUniqueFlightsAndBookings()
 		capacities = {}
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
@@ -69,7 +69,7 @@ class Network():
 		return capacities
 
 	def countTotalBookedPerFlight(self):
-		flights = self.f.getFilterUniqueFlightsAndBookings()
+		flights = self.f.getUniqueFlightsAndBookings()
 		total_bookings = {}
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
@@ -84,7 +84,7 @@ class Network():
 		return total_bookings	
 
 	def countFinalCabinLoadFactor(self): # total booked / capacity per flight
-		capacities = self.countFinalCabinCapacityPerFlight()
+		capacities = self.countCabinCapacityPerFlight()
 		total_bookings = self.countTotalBookedPerFlight()
 		cabin_load_factors = {}
 
@@ -117,7 +117,7 @@ class Network():
 				cabin_load_factor = float(data['TOTALBKD'].mean())/CAP
 				ans.append((cabin_load_factor, percent_overbooked))
 
-		return ans
+		return ans	
 
 	def timeseries(self):
 		flights = self.f.filterUniqueFlights(self.entities)
