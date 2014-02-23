@@ -22,6 +22,7 @@ class Visualizer():
 			tick.label.set_rotation('vertical')
 		plt.show()
 
+	def 
 	def overbookingVsCabinLoadFactor(self, network):
 		utilization = network.countOverbookedAndCabinLoadFactor()
 		print utilization
@@ -48,8 +49,11 @@ class Visualizer():
 
 		f = open('ICF Summary Statistics.txt', 'w')
 
+		
 		f.write("Total Number of Flights: " + str(num_total_flights) + "\n")
+		
 		f.write("Total Number of Directional Routes: " + str(num_routes) + "\n")
+
 		f.writelines([str(citypath) + ': ' + str(num_flights) + "\n" for citypath, num_flights in num_of_flights_between_cities.items()])
 		
 		f.close()

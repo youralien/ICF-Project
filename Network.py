@@ -97,7 +97,7 @@ class Network():
 		
 
 	def countOverbookedAndCabinLoadFactor(self):
-		""" Determines which flights overbooking occurs; calculates the 
+		""" Determines which flights  overbooking occurs; calculates the 
 		percentage overbooked and the cabin load factor.
 
 		returns: list of tuples (cabin_load_factor, percent_overbooked)
