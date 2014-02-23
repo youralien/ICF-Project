@@ -7,23 +7,21 @@ from Visualizer import Visualizer
 from Network import Network
 
 def main():
-	n = Network(1000)
-	# fltbk=n.groupby['ORG']
+
+	num_records = 1000
+	n = Network(num_records)
 	fltbk = n.f.getUniqueFlightsAndBookings()
-	
+
 	for g, d in fltbk:
 		print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 		BKD = list(d.sort(columns='KEYDAY', ascending=False)['BKD'])
 		KEYDAY = list(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 
-
 		ID = d['DATE'].first
 		print "ID ", ID
 		print "typeID: ", type(ID)
 		BC = d['BC'].first
-
-		break
-
+	
 		# plt.figure()	
 		# plt.plot(KEYDAY, BKD)
 		# plt.title("Flight Number") 
@@ -34,7 +32,6 @@ def main():
 
 if __name__ == '__main__':
 	main()
-	# n = Network(200)
-	# n.
 
+	
 

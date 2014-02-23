@@ -32,6 +32,20 @@ class FeatureFilter():
 
 		return self._filteredByUniqueFlightsAndBookings
 
+	def getDrillDown(self, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
+		filtered = self.entities
+
+		if org != None: filtered = filtered[filtered.ORG == org]
+		if des != None: filtered = filtered[filtered.DES == des]
+		if flight != None: filtered = filtered[filtered.FLT == flight]
+		if cabin != None: filtered = filtered[filtered.BC == self.utils.mapCabinToBookingClass(cabin)]
+		if bc != None: filtered = filtered[filtered.BC == bc]
+		# NEED TO FIGURE OUT HOW TO FILTER FOR A RANGE OF DATES
+
+		# Call other functions we've already written using this new dataframe
+
+		print filtered
+
 	def _loadBookings(self, n):
 		"""
 		n: Number of lines to read from self.csvfile
