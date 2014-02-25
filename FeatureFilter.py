@@ -45,16 +45,16 @@ class FeatureFilter():
 		if df == None:
 			df = self.entities.copy()
 
-		if org != None: filtered = filtered[filtered.ORG == org]
-		if des != None: filtered = filtered[filtered.DES == des]
-		if flight != None: filtered = filtered[filtered.FLT == flight]
-		if cabin != None: filtered = filtered[filtered.BC == self.utils.mapCabinToBookingClass(cabin)]
-		if bc != None: filtered = filtered[filtered.BC == bc]
+		if org != None: df = df[df.ORG == org]
+		if des != None: df = df[df.DES == des]
+		if flight != None: df = df[df.FLT == flight]
+		if cabin != None: df = df[df.BC == self.utils.mapCabinToBookingClass(cabin)]
+		if bc != None: df = df[df.BC == bc]
 		# NEED TO FIGURE OUT HOW TO FILTER FOR A RANGE OF DATES
 
 		# Call other functions we've already written using this new dataframe
 
-		return filtered
+		return df
 
 	def _loadBookings(self, n):
 		"""
