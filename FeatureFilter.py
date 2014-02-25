@@ -14,26 +14,36 @@ class FeatureFilter():
 		self._filteredByUniqueFlights = None
 		self._filteredByUniqueFlightsAndBookings = None
 
-	def getUniqueOrgDes(self, df=self.entities):
+	def getUniqueOrgDes(self, df=None):
+		if df == None:
+			df = self.entities
+
 		if self._filteredByOrgDes == None:
 			self._filteredByOrgDes = self._filterByOrgDes(df)
 
 		return self._filteredByOrgDes
 
-	def getUniqueFlights(self, df=self.entities):
+	def getUniqueFlights(self, df=None):
+		if df == None:
+			df = self.entities
+
 		if self._filteredByUniqueFlights == None:
 			self._filteredByUniqueFlights = self._filterUniqueFlights(df)
 
 		return self._filteredByUniqueFlights
 
-	def getUniqueFlightsAndBookings(self, df=self.entities):
+	def getUniqueFlightsAndBookings(self, df=None):
+		if df == None:
+			df = self.entities
+
 		if self._filteredByUniqueFlightsAndBookings == None:
 			self._filteredByUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings(df)
 
 		return self._filteredByUniqueFlightsAndBookings
 
-	def getDrillDown(self, df=self.entities, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
-		df = df.copy()
+	def getDrillDown(self, df=None, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
+		if df == None:
+			df = self.entities.copy()
 
 		if org != None: filtered = filtered[filtered.ORG == org]
 		if des != None: filtered = filtered[filtered.DES == des]
