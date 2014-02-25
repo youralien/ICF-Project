@@ -73,6 +73,9 @@ class FeatureFilter():
 		return df
 
 	def _mask(self, m, vals, column):
+		"""
+		Helper function for getDrillDown
+		"""
 		if val != None:
 			for val in vals:
 				m = m | (column == val)
