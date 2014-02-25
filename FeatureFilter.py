@@ -41,20 +41,44 @@ class FeatureFilter():
 
 		return self._filteredByUniqueFlightsAndBookings
 
-	def getDrillDown(self, df=None, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
+	def getDrillDown(self, df=None, orgs=None, dests=None, flights=None, cabins=None, bcs=None, date_ranges=None):
 		if df == None:
 			df = self.entities.copy()
 
-		if org != None: df = df[df.ORG == org]
-		if des != None: df = df[df.DES == des]
-		if flight != None: df = df[df.FLT == flight]
-		if cabin != None: df = df[df.BC == self.utils.mapCabinToBookingClass(cabin)]
-		if bc != None: df = df[df.BC == bc]
+		m = pd.Series(False, list(df.index))
+
+		self._mask(m, orgs, df.ORG)
+		self._mask(m, dests, df.ORG)
+		self._mask(m, flights, df.ORG)
+		self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
+		self._mask(m, bcs, df.BC)
+		self._mask(m, date_ranges, df.DATE)
+
+		return df[m]
+
+		# if orgs != None: 
+		# 	for org in orgs
+		# if des != None: df = df[df.DES == des]
+		# if flight != None: df = df[df.FLT == flight]
+		# if bcs != None:
+
+		# 	for bc in bcs:
+		# 		| df.BC == bc
+		# 	df = df[df.BC == bc]
+		# if cabin != None: df = df[df.BC == self.utils.mapCabinToBookingClass(cabin)]
 		# NEED TO FIGURE OUT HOW TO FILTER FOR A RANGE OF DATES
 
 		# Call other functions we've already written using this new dataframe
 
 		return df
+
+	def _mask(self, m, vals, column):
+		if val != None:
+			for val in vals:
+				m = m | (column == val)
+
+		return m
+
 
 	def _loadBookings(self, n):
 		"""
