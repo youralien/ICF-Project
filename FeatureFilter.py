@@ -44,7 +44,7 @@ class FeatureFilter():
 
 		# Call other functions we've already written using this new dataframe
 
-		print filtered
+		return filtered
 
 	def _loadBookings(self, n):
 		"""
