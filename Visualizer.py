@@ -39,8 +39,9 @@ class Visualizer():
 		v.plotTimeSeries(x[keys[0]])
 
 	def bookingCurves(self, network):
-		
-		fltbk = network.f.getUniqueFlightsAndBookings()
+		df = network.f.getDrillDown(bc='L')
+		print df
+		fltbk = network.f.getUniqueFlightsAndBookings(df)
 		plt.figure()
 		for g, d in fltbk:
 			print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
@@ -51,7 +52,6 @@ class Visualizer():
 			print "ID ", ID
 			print "typeID: ", type(ID)
 			BC = d['BC'].first
-		
 				
 			plt.plot(KEYDAY, BKD)
 			

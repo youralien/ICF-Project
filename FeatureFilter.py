@@ -15,7 +15,7 @@ class FeatureFilter():
 		self._filteredByUniqueFlightsAndBookings = None
 
 	def getUniqueOrgDes(self, df=None):
-		if df == None:
+		if not df:
 			df = self.entities
 
 		if self._filteredByOrgDes == None:
@@ -24,7 +24,7 @@ class FeatureFilter():
 		return self._filteredByOrgDes
 
 	def getUniqueFlights(self, df=None):
-		if df == None:
+		if not df:
 			df = self.entities
 
 		if self._filteredByUniqueFlights == None:
@@ -33,7 +33,7 @@ class FeatureFilter():
 		return self._filteredByUniqueFlights
 
 	def getUniqueFlightsAndBookings(self, df=None):
-		if df == None:
+		if not df:
 			df = self.entities
 
 		if self._filteredByUniqueFlightsAndBookings == None:
@@ -42,7 +42,7 @@ class FeatureFilter():
 		return self._filteredByUniqueFlightsAndBookings
 
 	def getDrillDown(self, df=None, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
-		if df == None:
+		if not df:
 			df = self.entities.copy()
 
 		if org != None: df = df[df.ORG == org]
