@@ -52,7 +52,7 @@ class FeatureFilter():
 		self._mask(m, orgs, df.ORG)
 		self._mask(m, dests, df.ORG)
 		self._mask(m, flights, df.ORG)
-		self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
+		# self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
 		self._mask(m, bcs, df.BC)
 		self._mask(m, date_ranges, df.DATE)
 
@@ -76,7 +76,7 @@ class FeatureFilter():
 		"""
 		Helper function for getDrillDown
 		"""
-		if val != None:
+		if vals != None:
 			for val in vals:
 				m = m | (column == val)
 

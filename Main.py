@@ -8,10 +8,10 @@ from Network import Network
 
 def main():
 
-	num_records = 'all'
+	num_records = 10000
 	n = Network(num_records)
 	v = Visualizer()
-	v.bookingCurves(n,org='DXB')
+	v.bookingCurves(n,org=['DXB'])
 
 if __name__ == '__main__':
 	main()
