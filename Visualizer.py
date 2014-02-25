@@ -38,8 +38,9 @@ class Visualizer():
 			print key, len(x[key])
 		v.plotTimeSeries(x[keys[0]])
 
-	def bookingCurves(self, network):
-		df = network.f.getDrillDown(bc='L')
+	def bookingCurves(self, network, org=None, des=None, flight=None,	
+		cabin=None, bc=None, date_range=None):
+		df = network.f.getDrillDown(org='DXB', bc='Y')
 		print df
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 		plt.figure()

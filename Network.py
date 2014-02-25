@@ -14,7 +14,6 @@ class Network():
 
 	def __init__(self, nrows):
 		self.f = FeatureFilter(nrows)
-		self.utils = Utils()
 
 	def countEntitiesBetweenCities(self):
 		"""
@@ -59,7 +58,7 @@ class Network():
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
 			bc = booking_group[4]
-			cabin, rank = self.utils.mapBookingClassToCabinHierarchy(bc)
+			cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
 
 			if flight not in capacities:
 				capacities[flight] = {}
@@ -74,7 +73,7 @@ class Network():
 		for booking_group, data in flights:
 			flight = booking_group[0:4]
 			bc = booking_group[4]
-			cabin, rank = self.utils.mapBookingClassToCabinHierarchy(bc)
+			cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
 
 			if flight not in total_bookings:
 				total_bookings[flight] = {}
@@ -135,5 +134,15 @@ def main():
 
 if __name__ == '__main__':
 	#main()
-	num_records = 1000
+	import thinkplot
+	import thinkstats2
+
+	num_records = 100500
 	n = Network(num_records)
+	cabin_load_factor_list =  n.countFinalCabinLoadFactor().values()
+	print "cabin_load_factor_list: \n", cabin_load_factor_list
+	print "length of clf_list: ", len(cabin_load_factor_list)
+	print "maximum cabin load factor: ", max(cabin_load_factor_list)
+	cabin_load_factor_cdf = thinkstats2.MakeCdfFromList(cabin_load_factor_list)
+	thinkplot.Cdf(cabin_load_factor_cdf)
+	thinkplot.show()

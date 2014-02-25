@@ -1,7 +1,8 @@
 import csv
 
 class Utils():
-	def mapBookingClassToCabinHierarchy(self, bc):
+	@staticmethod
+	def mapBookingClassToCabinHierarchy(bc):
 		with open('Data/BC_Hierarchy.csv', 'r') as bc_file:
 			reader = csv.reader(bc_file)
 			for rank, booking_class, cabin in reader:
@@ -10,7 +11,8 @@ class Utils():
 
 		raise Exception('Booking Class not found')
 
-	def mapCabinToBookingClass(self, cabin):
+	@staticmethod
+	def mapCabinToBookingClass(cabin):
 		"""
 			cabin can be either 'Y' or 'J' for economy or business class
 		"""
@@ -18,7 +20,8 @@ class Utils():
 			reader = csv.reader(bc_file)
 			return [bc for r, bc, c in reader if c == cabin]
 
-	def date2DayOfWeek(self, date):
+	@staticmethod
+	def date2DayOfWeek(date):
 		"""
 		date : string 'm/d/yyyy' or 'mm/dd/yyyy'
 		"""
@@ -29,8 +32,7 @@ class Utils():
 		return day.strftime("%A")
 
 def main():
-	u = Utils()
-	print u.mapCabinToBookingClass('J')
-
+	pass
+	
 if __name__ == '__main__':
 	main()

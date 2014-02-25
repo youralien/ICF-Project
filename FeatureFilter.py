@@ -1,4 +1,5 @@
 import pandas as pd
+from Utils import Utils
 
 class FeatureFilter():
 	"""
@@ -9,6 +10,7 @@ class FeatureFilter():
 	def __init__(self, n, csvfile='Data/BKGDAT_Filtered.txt'):
 		self.csvfile = csvfile
 		self.entities = self._loadBookings(n)
+
 
 		self._filteredByOrgDes = None
 		self._filteredByUniqueFlights = None
@@ -48,7 +50,7 @@ class FeatureFilter():
 		if org != None: df = df[df.ORG == org]
 		if des != None: df = df[df.DES == des]
 		if flight != None: df = df[df.FLT == flight]
-		if cabin != None: df = df[df.BC == self.utils.mapCabinToBookingClass(cabin)]
+		# if cabin != None: df = df[df.BC == Utils.mapCabinToBookingClass(cabin)]
 		if bc != None: df = df[df.BC == bc]
 		# NEED TO FIGURE OUT HOW TO FILTER FOR A RANGE OF DATES
 
