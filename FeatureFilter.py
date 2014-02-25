@@ -14,26 +14,26 @@ class FeatureFilter():
 		self._filteredByUniqueFlights = None
 		self._filteredByUniqueFlightsAndBookings = None
 
-	def getUniqueOrgDes(self):
+	def getUniqueOrgDes(self, df=self.entities):
 		if self._filteredByOrgDes == None:
-			self._filteredByOrgDes = self._filterByOrgDes()
+			self._filteredByOrgDes = self._filterByOrgDes(df)
 
 		return self._filteredByOrgDes
 
-	def getUniqueFlights(self):
+	def getUniqueFlights(self, df=self.entities):
 		if self._filteredByUniqueFlights == None:
-			self._filteredByUniqueFlights = self._filterUniqueFlights()
+			self._filteredByUniqueFlights = self._filterUniqueFlights(df)
 
 		return self._filteredByUniqueFlights
 
-	def getUniqueFlightsAndBookings(self):
+	def getUniqueFlightsAndBookings(self, df=self.entities):
 		if self._filteredByUniqueFlightsAndBookings == None:
-			self._filteredByUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings()
+			self._filteredByUniqueFlightsAndBookings = self._filterUniqueFlightsAndBookings(df)
 
 		return self._filteredByUniqueFlightsAndBookings
 
-	def getDrillDown(self, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
-		filtered = self.entities
+	def getDrillDown(self, df=self.entities, org=None, des=None, flight=None, cabin=None, bc=None, date_range=None):
+		df = df.copy()
 
 		if org != None: filtered = filtered[filtered.ORG == org]
 		if des != None: filtered = filtered[filtered.DES == des]
@@ -58,26 +58,26 @@ class FeatureFilter():
 		else:
 			return pd.read_csv(self.csvfile, nrows=int(n))
 
-	def _filterByOrgDes(self):
+	def _filterByOrgDes(self, df):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
 		returns: Pandas DataFrame object with bookings grouped by departure and
 				 arrival locations (groups passengers by route traveled)
 		"""
-		return self.entities.groupby(['ORG', 'DES'], sort=False)
+		return df.groupby(['ORG', 'DES'], sort=False)
 
-	def _filterUniqueFlights(self):
+	def _filterUniqueFlights(self, df):
 		"""
 		entities: Pandas DataFrame object containing raw data from the CSV file
 
 		returns: Pandas DataFrame object with bookings grouped into unique 
 				 flight objects (groups passengers on a per-flight basis)
 		"""
-		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
+		return df.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
 
-	def _filterUniqueFlightsAndBookings(self):
-		return self.entities.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
+	def _filterUniqueFlightsAndBookings(self, df):
+		return df.groupby(['DATE', 'FLT', 'ORG', 'DES', 'BC'], sort=False)
 
 def main():
 	pass
