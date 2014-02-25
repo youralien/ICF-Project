@@ -134,4 +134,6 @@ def main():
 	n = Network(num_records)
 
 if __name__ == '__main__':
-	main()
+	#main()
+	num_records = 1000
+	n = Network(num_records)

@@ -38,6 +38,29 @@ class Visualizer():
 			print key, len(x[key])
 		v.plotTimeSeries(x[keys[0]])
 
+	def bookingCurves(self, network):
+		
+		fltbk = network.f.getUniqueFlightsAndBookings()
+		plt.figure()
+		for g, d in fltbk:
+			print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+			BKD = list(d.sort(columns='KEYDAY', ascending=False)['BKD'])
+			KEYDAY = list(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+
+			ID = d['DATE'].first
+			print "ID ", ID
+			print "typeID: ", type(ID)
+			BC = d['BC'].first
+		
+				
+			plt.plot(KEYDAY, BKD)
+			
+
+		plt.title("Flight Number") 
+		plt.xlabel('-KEYDAY')
+		plt.ylabel('BKD')
+		plt.show()
+			
 	def summaryStatistics(self):
 		num_records = 'all'
 		n = Network(num_records)

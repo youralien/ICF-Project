@@ -14,7 +14,7 @@ def RemoveHourMinuteSecond(oldfilename, newfilename):
 	newfile.close()
 
 def NormalizeData(oldfilename, newfilename):
-	df = pd.read_csv(oldfilename, nrows=100)
+	df = pd.read_csv(oldfilename, nrows=100000)
 	
 	old_row = df.loc[1, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]
 	old_index = 0
