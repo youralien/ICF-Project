@@ -129,23 +129,7 @@ class Network():
 		return time_series
 
 def main():
-	import thinkplot
-	import thinkstats2
-
-	# nrows to be loaded from data file. 'all' loads the whole file.
-	num_records = 100500
-
-	n = Network(num_records)
-	
-	cabin_load_factor_list =  n.countFinalCabinLoadFactor().values()
-
-	print "cabin_load_factor_list: \n", cabin_load_factor_list
-	print "length of clf_list: ", len(cabin_load_factor_list)
-	print "maximum cabin load factor: ", max(cabin_load_factor_list)
-	
-	cabin_load_factor_cdf = thinkstats2.MakeCdfFromList(cabin_load_factor_list)
-	thinkplot.Cdf(cabin_load_factor_cdf)
-	thinkplot.show()
+	pass
 
 if __name__ == '__main__':
 	main()

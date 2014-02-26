@@ -8,10 +8,11 @@ from Network import Network
 
 def main():
 
-	num_records = 10000
+	num_records = 'all'
 	n = Network(num_records)
 	v = Visualizer()
-	v.bookingCurves(n,org=['DXB'])
+	v.plotCDFCabinLoadFactor(n)
+	# v.bookingCurves(n,org=['DXB'])
 
 if __name__ == '__main__':
 	main()

@@ -1,4 +1,8 @@
 import matplotlib.pyplot as plt
+import thinkplot
+import thinkstats2
+from math import isnan, isinf
+import numpy as np
 
 class Visualizer():
 
@@ -61,13 +65,28 @@ class Visualizer():
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('BKD')
 		plt.show()
-			
-	def summaryStatistics(self):
-		num_records = 'all'
-		n = Network(num_records)
+	
+	def plotCDFCabinLoadFactor(self, network):
+		
+		clf_list =  network.countFinalCabinLoadFactor().values()
+		
+		# remove any invalid floats 'nan' or 'inf'
+		clf_list[:] = [e for e in clf_list if not isnan(e) and not isinf(e)]
 
-		num_total_flights = len(n.f.filterUniqueFlights(n.entities))
-		num_of_flights_between_cities = n.countFlightsBetweenCities()
+		# investigate lognormalness
+		# clf_list = np.exp(np.array(clf_list))
+
+		clf_cdf = thinkstats2.MakeCdfFromList(clf_list)
+		thinkplot.Cdf(clf_cdf)
+		thinkplot.show(title='Fraction of the cabin filled for flights at departure', 
+						xlabel='Cabin Load Factor',
+						ylabel='CDF'
+						)
+
+	def summaryStatistics(self, network):
+		
+		num_total_flights = len(network.f.filterUniqueFlights(n.entities))
+		num_of_flights_between_cities = network.countFlightsBetweenCities()
 		num_routes = len(num_of_flights_between_cities.keys())
 
 		f = open('ICF Summary Statistics.txt', 'w')
