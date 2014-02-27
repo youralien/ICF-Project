@@ -44,7 +44,7 @@ class Visualizer():
 
 	def bookingCurves(self, network, org=None, des=None, flight=None,	
 		cabin=None, bc=None, date_range=None):
-		df = network.f.getDrillDown(orgs=['DMM'], dests=['DXB'])
+		df = network.f.getDrillDown(orgs=['DMM', 'DXB'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101, 117])
 		print df
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 		plt.figure()
