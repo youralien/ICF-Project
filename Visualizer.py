@@ -27,12 +27,16 @@ class Visualizer():
 		plt.show()
 
 	def overbookingVsCabinLoadFactor(self, network):
-		utilization = network.countOverbookedAndCabinLoadFactor()
-		print utilization
-		plt.plot(utilization)
-		plt.xlabel('Cabin Load Factor (units?)')
-		plt.ylabel('Overbooking (units?)')
-		plt.show()
+		"""
+		Investigates how overbooking, which varies with time, also varies 
+		depending on the final cabin load factor.
+
+		Overbooking is defined as AUTH / CAP, where AUTH varies with time.
+
+		Final Cabin Load Factor is defined as TOTALBKD / CAP. 
+		"""
+
+		pass
 
 	def timeVsFlights(self, network):
 		x = network.timeseries()
@@ -44,6 +48,13 @@ class Visualizer():
 
 	def bookingCurves(self, network, org=None, des=None, flight=None,	
 		cabin=None, bc=None, date_range=None):
+		""" Plots booking curves for some subset of the data.
+		
+		A booking curve tracks the number of seats booked over time, starting 
+		from the opening of ticket sales and ending close to departure
+	
+		"""
+
 		df = network.f.getDrillDown(orgs=['DMM', 'DXB'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101, 117])
 		print df
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
@@ -67,14 +78,17 @@ class Visualizer():
 		plt.show()
 	
 	def CDFCabinLoadFactor(self, network):
+		""" Plots a Cumulative Distrubtion Function for Cabin Load Factor.
+
+		Cabin Load Factor is defined as the ratio between the total number of 
+		passengers booked for a flight and the total capacity of the plane.
+
+		"""
 
 		clf_list =  network.countFinalCabinLoadFactor().values()
 		
 		# remove any invalid floats 'nan' or 'inf'
 		clf_list[:] = [e for e in clf_list if not isnan(e) and not isinf(e)]
-
-		# investigate lognormalness
-		# clf_list = np.exp(np.array(clf_list))
 
 		clf_cdf = thinkstats2.MakeCdfFromList(clf_list)
 		thinkplot.Cdf(clf_cdf)
@@ -84,6 +98,10 @@ class Visualizer():
 						)
 
 	def summaryStatistics(self, network):
+		""" Creates a text file of summary statistics that may be useful
+		to presenting to preliminary meetings with our advisors/sponsors.
+
+		"""
 		
 		num_total_flights = len(network.f.filterUniqueFlights(n.entities))
 		num_of_flights_between_cities = network.countFlightsBetweenCities()
