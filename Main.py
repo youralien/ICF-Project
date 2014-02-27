@@ -16,7 +16,7 @@ def main():
 	num_records = 1000
 	n = Network(num_records)
 	v = Visualizer()
-	# v.plotCDFCabinLoadFactor(n)
+	# v.CDFCabinLoadFactor(n)
 	v.bookingCurves(n,org=['DXB'])
 
 if __name__ == '__main__':
