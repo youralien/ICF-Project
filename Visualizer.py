@@ -67,7 +67,7 @@ class Visualizer():
 		plt.show()
 	
 	def plotCDFCabinLoadFactor(self, network):
-		
+
 		clf_list =  network.countFinalCabinLoadFactor().values()
 		
 		# remove any invalid floats 'nan' or 'inf'
