@@ -44,17 +44,18 @@ class FeatureFilter():
 		return self._filteredByUniqueFlightsAndBookings
 
 	def getDrillDown(self, df=None, orgs=None, dests=None, flights=None, cabins=None, bcs=None, date_ranges=None):
-		if not df:
+		if not isinstance(df, pd.DataFrame):
 			df = self.entities.copy()
 
 		m = pd.Series(True, list(df.index))
 
 		self._mask(m, orgs, df.ORG)
-		self._mask(m, dests, df.ORG)
-		self._mask(m, flights, df.ORG)
-		# self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
+		self._mask(m, dests, df.DES)
+		self._mask(m, flights, df.FLT)
 		self._mask(m, bcs, df.BC)
 		self._mask(m, date_ranges, df.DATE)
+		if cabins != None:
+			self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
 
 		return df[m]
 
