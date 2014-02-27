@@ -11,7 +11,6 @@ class FeatureFilter():
 		self.csvfile = csvfile
 		self.entities = self._loadBookings(n)
 
-
 		self._filteredByOrgDes = None
 		self._filteredByUniqueFlights = None
 		self._filteredByUniqueFlightsAndBookings = None
@@ -44,32 +43,25 @@ class FeatureFilter():
 		return self._filteredByUniqueFlightsAndBookings
 
 	def getDrillDown(self, df=None, orgs=None, dests=None, flights=None, cabins=None, bcs=None, date_ranges=None):
+		"""
+			df: a pd.DataFrame object that the user wants to filter
+			orgs: a list of strings describing origin airports
+		"""
 		if not isinstance(df, pd.DataFrame):
 			df = self.entities.copy()
 
+		false_mask = pd.Series(False, list(df.index))
 		m = pd.Series(True, list(df.index))
 
-		m = self._mask(m, orgs, df.ORG)
-		m = self._mask(m, dests, df.DES)
-		m = self._mask(m, flights, df.FLT)
-		m = self._mask(m, bcs, df.BC)
-		m = self._mask(m, date_ranges, df.DATE)
+		m = m & self._mask(false_mask, orgs, df.ORG)
+		m = m & self._mask(false_mask, dests, df.DES)
+		m = m & self._mask(false_mask, flights, df.FLT)
+		m = m & self._mask(false_mask, bcs, df.BC)
+		m = m & self._mask(false_mask, date_ranges, df.DATE)
 		if cabins != None:
-			m = self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
+			m = m & self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
 
 		return df[m]
-
-		# if orgs != None: 
-		# 	for org in orgs
-		# if des != None: df = df[df.DES == des]
-		# if flight != None: df = df[df.FLT == flight]
-		# if bcs != None:
-
-		# 	for bc in bcs:
-		# 		| df.BC == bc
-		# 	df = df[df.BC == bc]
-		# if cabin != None: df = df[df.BC == self.utils.mapCabinToBookingClass(cabin)]
-
 
 		return df
 
@@ -79,13 +71,13 @@ class FeatureFilter():
 		"""
 		if vals != None:
 			for val in vals:
-				print column == val
-				print m & (column == val)
-				m = m & (column == val)
+				m = m | (column == val)
 
-		print m
+			return m
+		else:
+			return pd.Series(True, list(m.index))
 
-		return m
+		
 
 
 	def _loadBookings(self, n):
