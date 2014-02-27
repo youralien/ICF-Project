@@ -47,7 +47,7 @@ class FeatureFilter():
 		if not df:
 			df = self.entities.copy()
 
-		m = pd.Series(False, list(df.index))
+		m = pd.Series(True, list(df.index))
 
 		self._mask(m, orgs, df.ORG)
 		self._mask(m, dests, df.ORG)
@@ -78,7 +78,7 @@ class FeatureFilter():
 		"""
 		if vals != None:
 			for val in vals:
-				m = m | (column == val)
+				m = m & (column == val)
 
 		return m
 
