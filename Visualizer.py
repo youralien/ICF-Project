@@ -26,7 +26,7 @@ class Visualizer():
 			tick.label.set_rotation('vertical')
 		plt.show()
 
-	def overbookingVsCabinLoadFactor(self, network):
+	def ScatteroverbookingVsCabinLoadFactor(self, network):
 		utilization = network.countOverbookedAndCabinLoadFactor()
 		print utilization
 		plt.plot(utilization)
@@ -66,7 +66,7 @@ class Visualizer():
 		plt.ylabel('BKD')
 		plt.show()
 	
-	def plotCDFCabinLoadFactor(self, network):
+	def CDFCabinLoadFactor(self, network):
 
 		clf_list =  network.countFinalCabinLoadFactor().values()
 		
