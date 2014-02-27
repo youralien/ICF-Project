@@ -26,7 +26,7 @@ class Visualizer():
 			tick.label.set_rotation('vertical')
 		plt.show()
 
-	def ScatteroverbookingVsCabinLoadFactor(self, network):
+	def overbookingVsCabinLoadFactor(self, network):
 		utilization = network.countOverbookedAndCabinLoadFactor()
 		print utilization
 		plt.plot(utilization)
