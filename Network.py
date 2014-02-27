@@ -10,23 +10,21 @@ import pandas as pd
 
 class Network():
 	"""
+	Network consumes data frames from FeatureFilter and calculates interesting
+	statistics about the flight network
 	"""
 
 	def __init__(self, nrows):
 		self.f = FeatureFilter(nrows)
-
-	def countEntitiesBetweenCities(self):
-		"""
-
-		"""
-		flights = self.f.getFilterByOrgDes()
-		network = {}
-		for flight_path, group in flights:
-			network[flight_path] = len(group)
-
-		return network
 															
 	def countFlightsBetweenCities(self):
+		"""
+		Counts the total number of flights between unique org-des pairs. 
+		Similar to timeseries but it doesn't index the counts by date.
+
+		returns:
+			dictionary of {(org, des), number of flights from org to des}
+		"""
 		flights = self.f.getFilterUniqueFlights()
 		num_flights = {}
 		for flight, group in flights:
@@ -34,25 +32,13 @@ class Network():
 
 		return num_flights
 
-	def countTotalPassengersPerFlight(self):
-		flights = self.f.getFilterUniqueFlightsAndBookings()
-		total_booked = {}
-		total_seats = {}
-		utilization = {}
-
-		for booking_group, data in flights:
-
-			flight = booking_group[0:4]
-			total_booked[flight] = total_booked.get(flight, 0) + data['TOTALBKD'].mean()
-			total_seats[flight] = total_seats.get(flight, 0) + data['CAP'].mean()
-
-		for booking_group, data in flights:
-			flight = booking_group[0:4]
-			utilization[flight] = float(total_booked[flight]) / total_seats[flight]
-		
-		return utilization
-
 	def countCabinCapacityPerFlight(self):
+		"""
+		Counts the total capcity of a flight in every cabin on the plane
+
+		returns:
+			dictionary of {flight, dictionary of {cabin, cabin capacity}}
+		"""
 		flights = self.f.getUniqueFlightsAndBookings()
 		capacities = {}
 		for booking_group, data in flights:
@@ -68,6 +54,13 @@ class Network():
 		return capacities
 
 	def countTotalBookedPerFlight(self):
+		"""
+		Counts the total number of passengers on a flight in every cabin on the
+		plane
+
+		returns:
+			dictionary of {flight, dictionary of {cabin, total booked}}
+		"""
 		flights = self.f.getUniqueFlightsAndBookings()
 		total_bookings = {}
 		for booking_group, data in flights:
@@ -82,7 +75,14 @@ class Network():
 
 		return total_bookings	
 
-	def countFinalCabinLoadFactor(self): # total booked / capacity per flight
+	def countFinalCabinLoadFactor(self):
+		"""
+		Computes what percentage of each flight in self.entities is filled at
+		the time of departure (i.e. TOTALBKD / CAP)
+
+		returns:
+			dictionary of {flight, cabin load factor}
+		"""
 		capacities = self.countCabinCapacityPerFlight()
 		total_bookings = self.countTotalBookedPerFlight()
 		cabin_load_factors = {}
@@ -96,10 +96,12 @@ class Network():
 		
 
 	def countOverbookedAndCabinLoadFactor(self):
-		""" Determines which flights  overbooking occurs; calculates the 
+		""" 
+		Determines which flights  overbooking occurs; calculates the 
 		percentage overbooked and the cabin load factor.
 
-		returns: list of tuples (cabin_load_factor, percent_overbooked)
+		returns: 
+			list of tuples {cabin_load_factor, percent_overbooked}
 		"""
 		flights = self.f.getFilterUniqueFlightsAndBookings()
 		
@@ -113,18 +115,25 @@ class Network():
 
 				flight = booking_group[:4]
 				percent_overbooked = float(AUTH)/CAP
-				cabin_load_factor = float(data['TOTALBKD'].mean())/CAP
+				cabin_load_factor = float(data['TOTALBKD'].mean()) / CAP
 				ans.append((cabin_load_factor, percent_overbooked))
 
 		return ans	
 
 	def timeseries(self):
+		"""
+		Counts the number of flights that occur along a directed edge (unique
+		org-des pairs) in self.entities and indexes the counts by their date
+		
+		returns:
+			dictionary of {time, dictionary of {directed_edge, count}}
+		"""
 		flights = self.f.filterUniqueFlights(self.entities)
 		time_series = {}
-		for flight, group in flights:
-			location = flight[2:]
-			time_series[location] = time_series.get(location, {})
-			time_series[location][flight[0]] = time_series[location].get(flight[0], 0) + 1
+		for f, group in flights:
+			local = f[2:]
+			time_series[local] = time_series.get(local, {})
+			time_series[local][f[0]] = time_series[local].get(f[0], 0) + 1
 
 		return time_series
 

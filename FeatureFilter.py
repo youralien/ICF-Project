@@ -1,3 +1,8 @@
+# Kyle McConnaughay (2015) & Ryan Louie (2017)
+# Data Science Project with ICF International
+# Franklin W. Olin College of Engineering
+# Spring 2014	
+
 import pandas as pd
 from Utils import Utils
 
@@ -44,9 +49,24 @@ class FeatureFilter():
 
 	def getDrillDown(self, df=None, orgs=None, dests=None, flights=None, cabins=None, bcs=None, date_ranges=None):
 		"""
+		Filters a dataframe for rows that match the given features. 
+		For instance, orgs=['DXB', 'DMM'], bcs=['B'] will return the dataframe
+		that contains rows with flights that departed from DXB or DMM AND that
+		were made in the 'B' booking class
+
+		args:
 			df: a pd.DataFrame object that the user wants to filter
-			orgs: a list of strings describing origin airports
+			orgs: list of strings describing origin airports
+			dests: list of strings describing destination airports
+			flights: list of ints describing flight numbers
+			cabins: list of strings describing cabins ('Y' or 'J')
+			bcs: list of strings describing booking classes
+			data_ranges: list of tuples of strings describing desired dates
+
+		returns:
+			pd.DataFrame instance
 		"""
+
 		if not isinstance(df, pd.DataFrame):
 			df = self.entities.copy()
 
@@ -59,11 +79,10 @@ class FeatureFilter():
 		m = m & self._mask(false_mask, bcs, df.BC)
 		m = m & self._mask(false_mask, date_ranges, df.DATE)
 		if cabins != None:
-			m = m & self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
+			cs = [Utils.mapCabinToBookingClass(cabin)[0] for cabin in cabins]
+			m = m & self._mask(m, cs, df.BC)
 
 		return df[m]
-
-		return df
 
 	def _mask(self, m, vals, column):
 		"""
@@ -76,9 +95,6 @@ class FeatureFilter():
 			return m
 		else:
 			return pd.Series(True, list(m.index))
-
-		
-
 
 	def _loadBookings(self, n):
 		"""

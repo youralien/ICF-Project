@@ -1,3 +1,8 @@
+# Kyle McConnaughay (2015) & Ryan Louie (2017)
+# Data Science Project with ICF International
+# Franklin W. Olin College of Engineering
+# Spring 2014	
+
 import matplotlib.pyplot as plt
 import thinkplot
 import thinkstats2
@@ -42,25 +47,23 @@ class Visualizer():
 			print key, len(x[key])
 		v.plotTimeSeries(x[keys[0]])
 
-	def bookingCurves(self, network, org=None, des=None, flight=None,	
-		cabin=None, bc=None, date_range=None):
-		df = network.f.getDrillDown(orgs=['DMM', 'DXB'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101, 117])
-		print df
+	def bookingCurves(self, network, org=None, des=None, flight=None, 
+					  cabin=None, bc=None, date_range=None):
+		df = network.f.getDrillDown(orgs=['DMM', 'DXB'], dests=['DXB', 'DMM'], 
+									bcs=['B'], flights=[101, 117])
+
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
+
 		plt.figure()
 		for g, d in fltbk:
-			# print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 			BKD = list(d.sort(columns='KEYDAY', ascending=False)['BKD'])
 			KEYDAY = list(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 
 			ID = d['DATE'].first
-			# print "ID ", ID
-			# print "typeID: ", type(ID)
 			BC = d['BC'].first
 				
 			plt.plot(KEYDAY, BKD)
 			
-
 		plt.title("Flight Number") 
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('BKD')
@@ -78,11 +81,10 @@ class Visualizer():
 
 		clf_cdf = thinkstats2.MakeCdfFromList(clf_list)
 		thinkplot.Cdf(clf_cdf)
-		thinkplot.show(title='Fraction of the cabin filled for flights at departure', 
-						xlabel='Cabin Load Factor',
-						ylabel='CDF'
-						)
-
+		thinkplot.show(title='Fraction of the cabin filled at departure', 
+					   xlabel='Cabin Load Factor',
+					   ylabel='CDF')
+x
 	def summaryStatistics(self, network):
 		
 		num_total_flights = len(network.f.filterUniqueFlights(n.entities))
