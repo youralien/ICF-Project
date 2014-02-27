@@ -44,18 +44,18 @@ class Visualizer():
 
 	def bookingCurves(self, network, org=None, des=None, flight=None,	
 		cabin=None, bc=None, date_range=None):
-		df = network.f.getDrillDown(orgs=['DXB'])
+		df = network.f.getDrillDown(orgs=['DMM'], dests=['DXB'])
 		print df
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 		plt.figure()
 		for g, d in fltbk:
-			print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+			# print list(d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 			BKD = list(d.sort(columns='KEYDAY', ascending=False)['BKD'])
 			KEYDAY = list(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 
 			ID = d['DATE'].first
-			print "ID ", ID
-			print "typeID: ", type(ID)
+			# print "ID ", ID
+			# print "typeID: ", type(ID)
 			BC = d['BC'].first
 				
 			plt.plot(KEYDAY, BKD)

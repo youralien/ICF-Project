@@ -17,7 +17,7 @@ class FeatureFilter():
 		self._filteredByUniqueFlightsAndBookings = None
 
 	def getUniqueOrgDes(self, df=None):
-		if not df:
+		if not isinstance(df, pd.DataFrame):
 			df = self.entities
 
 		if self._filteredByOrgDes == None:
@@ -26,7 +26,7 @@ class FeatureFilter():
 		return self._filteredByOrgDes
 
 	def getUniqueFlights(self, df=None):
-		if not df:
+		if not isinstance(df, pd.DataFrame):
 			df = self.entities
 
 		if self._filteredByUniqueFlights == None:
@@ -35,7 +35,7 @@ class FeatureFilter():
 		return self._filteredByUniqueFlights
 
 	def getUniqueFlightsAndBookings(self, df=None):
-		if not df:
+		if not isinstance(df, pd.DataFrame):
 			df = self.entities
 
 		if self._filteredByUniqueFlightsAndBookings == None:
@@ -44,17 +44,18 @@ class FeatureFilter():
 		return self._filteredByUniqueFlightsAndBookings
 
 	def getDrillDown(self, df=None, orgs=None, dests=None, flights=None, cabins=None, bcs=None, date_ranges=None):
-		if not df:
+		if not isinstance(df, pd.DataFrame):
 			df = self.entities.copy()
 
-		m = pd.Series(False, list(df.index))
+		m = pd.Series(True, list(df.index))
 
-		self._mask(m, orgs, df.ORG)
-		self._mask(m, dests, df.ORG)
-		self._mask(m, flights, df.ORG)
-		# self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
-		self._mask(m, bcs, df.BC)
-		self._mask(m, date_ranges, df.DATE)
+		m = self._mask(m, orgs, df.ORG)
+		m = self._mask(m, dests, df.DES)
+		m = self._mask(m, flights, df.FLT)
+		m = self._mask(m, bcs, df.BC)
+		m = self._mask(m, date_ranges, df.DATE)
+		if cabins != None:
+			m = self._mask(m, [Utils.mapCabinToBookingClass(cabin) for cabin in cabins], df.BC)
 
 		return df[m]
 
@@ -78,7 +79,11 @@ class FeatureFilter():
 		"""
 		if vals != None:
 			for val in vals:
-				m = m | (column == val)
+				print column == val
+				print m & (column == val)
+				m = m & (column == val)
+
+		print m
 
 		return m
 
