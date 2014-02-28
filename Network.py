@@ -103,7 +103,7 @@ class Network():
 		returns: 
 			list of tuples {cabin_load_factor, percent_overbooked}
 		"""
-		flights = self.f.getFilterUniqueFlightsAndBookings()
+		flights = self.f.getUniqueFlightsAndBookings()
 		
 		ans = []
 
@@ -118,7 +118,7 @@ class Network():
 				cabin_load_factor = float(data['TOTALBKD'].mean()) / CAP
 				ans.append((cabin_load_factor, percent_overbooked))
 
-		return ans	
+		return ans
 
 	def timeseries(self):
 		"""

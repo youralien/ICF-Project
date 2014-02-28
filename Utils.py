@@ -58,6 +58,13 @@ class Utils():
 		day = datetime.date(year, month, day) 
 		return day.strftime("%A")
 
+	@staticmethod
+	def writeSeriesToFile(f, series, indent=''):
+		for i in range(series.size):
+			index = series.index[i]
+			line = indent + str(index) + ": " + str(series[index]) + '\n'
+			f.write(line)
+
 def main():
 	pass
 	
