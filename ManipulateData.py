@@ -19,30 +19,92 @@ def RemoveHourMinuteSecond(oldfilename, newfilename):
 	newfile.close()
 
 def NormalizeData(oldfilename, newfilename):
-	df = pd.read_csv(oldfilename, nrows=1000)
+	oldfile = open(oldfilename, 'r')
+	max_keydays = {}
+	header = True
+	for oldline in oldfile:
+		if header:
+			header = False
+			continue
+		tokens = oldline.strip().split(',')
+		keyday = float(tokens[9])
+		flight = tuple(tokens[:4])
+		max_keydays[flight] = max(max_keydays.get(flight, 0), keyday)
 
-	old_row = df.loc[1, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]
-	old_index = 0
-	max_keyday = -1
+	oldfile.close()
 
-	for i in range(len(df)):
-		capacity = df.loc[i, 'CAP']
-		df.loc[i, 'BKD'] = float(df.loc[i, 'BKD']) / capacity
-		df.loc[i, 'AUTH'] = float(df.loc[i, 'AUTH']) / capacity
-		df.loc[i, 'TOTALBKD'] = float(df.loc[i, 'TOTALBKD']) / capacity
-		df.loc[i, 'AVAIL'] = float(df.loc[i, 'AVAIL']) / capacity
+	oldfile = open(oldfilename, 'r')
+	newfile = open(newfilename, 'w')
 
-		max_keyday = max(max_keyday, df.loc[i, 'KEYDAY'])
+	precision = 2
+
+	header = True
+	index = 1
+	for oldline in oldfile:
+		if header:
+			header = False
+			newfile.write(oldline)
+			continue
+
+		tokens = oldline.strip().split(',')
+		date = tokens[0]
+		flt = tokens[1]
+		org = tokens[2]
+		des = tokens[3]
+		cap = float(tokens[4])
+		bc = tokens[5]
+		bkd = int(tokens[6])
+		avail = int(tokens[7])
+		auth = int(tokens[8])
+		keyday = float(tokens[9])
+		totalbkd = int(tokens[10])
 		
-		if not (old_row == df.loc[i, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]).all():
-			for j in range(old_index, i):
-				df.loc[j, 'KEYDAY'] = float(df.loc[j, 'KEYDAY']) / max_keyday
+		if cap == 0:
+			continue
 
-			old_index = i
-			max_keyday = df.loc[i, 'KEYDAY']
-			old_row = df.loc[i, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]
+		flight = tuple(tokens[:4])
 
-	df.to_csv(newfilename, index=False)
+		norm_bkd = round(bkd / cap, precision)
+		norm_avail = round(avail / cap, precision)
+		norm_auth = round(auth / cap, precision)
+		norm_keyday = round(keyday / max_keydays[flight], precision)
+		norm_totalbkd = round(totalbkd / cap, precision)
+		
+		new_tokens = tokens[:5] + [str(norm_bkd), str(norm_avail), str(norm_auth), str(norm_keyday), str(norm_totalbkd)]
+		newline = ','.join(new_tokens)
+		newfile.write(newline)
+
+		print index
+		index += 1
+
+	oldfile.close()
+	newfile.close()
+
+
+	# df = pd.read_csv(oldfilename, nrows=1000)
+
+	# old_row = df.loc[1, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]
+	# old_index = 0
+	# max_keyday = -1
+
+	# for i in range(len(df)):
+	# 	capacity = df.loc[i, 'CAP']
+	# 	df.loc[i, 'BKD'] = float(df.loc[i, 'BKD']) / capacity
+	# 	df.loc[i, 'AUTH'] = float(df.loc[i, 'AUTH']) / capacity
+	# 	df.loc[i, 'TOTALBKD'] = float(df.loc[i, 'TOTALBKD']) / capacity
+	# 	df.loc[i, 'AVAIL'] = float(df.loc[i, 'AVAIL']) / capacity
+
+	# 	max_keyday = max(max_keyday, df.loc[i, 'KEYDAY'])
+		
+	# 	if not (old_row == df.loc[i, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]).all():
+	# 		for j in range(old_index, i):
+	# 			df.loc[j, 'KEYDAY'] = float(df.loc[j, 'KEYDAY']) / max_keyday
+
+	# 		old_index = i
+	# 		max_keyday = df.loc[i, 'KEYDAY']
+	# 		old_row = df.loc[i, ['DATE', 'FLT', 'ORG', 'DES', 'BC']]
+
+	# df.to_csv(newfilename, index=False)
 
 
 if __name__ == "__main__":

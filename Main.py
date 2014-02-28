@@ -22,8 +22,7 @@ if __name__ == '__main__':
 	num_records = 'all'
 	n = Network(num_records)
 	v = Visualizer()
-
-	booked = n.countTotalBookedPerFlight()
-
+	v.summaryStatistics(n)
+	
 	
 

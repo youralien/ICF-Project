@@ -3,11 +3,13 @@
 # Franklin W. Olin College of Engineering
 # Spring 2014	
 
+import pandas as pd
 import matplotlib.pyplot as plt
 import thinkplot
 import thinkstats2
 from math import isnan, isinf
 import numpy as np
+from Utils import Utils
 
 class Visualizer():
 
@@ -103,20 +105,44 @@ class Visualizer():
 
 		"""
 		
-		num_total_flights = len(network.f.filterUniqueFlights(n.entities))
-		num_of_flights_between_cities = network.countFlightsBetweenCities()
-		num_routes = len(num_of_flights_between_cities.keys())
 
-		f = open('ICF Summary Statistics.txt', 'w')
+		flights = network.countTotalBookedPerFlight()
+		networkData = [sum(flights[key].values()) for key in flights.keys()]
+		networkSeries = pd.Series(networkData).describe()
+		edgeData = {}
+
+		for flight, data in flights.items():
+			org_des = flight[2:]
+			edgeData[org_des] = edgeData.get(org_des, [])
+			edgeData[org_des].append(sum(data.values()))
+
+		with open('ICF_Summary_Statistics.txt', 'w') as f:
+			f.write('Network Summary\n')
+			Utils.writeSeriesToFile(f, networkSeries, indent='	')
+
+			f.write('\nRoute Summaries\n\n')
+			for org_des, booked in edgeData.items():
+				f.write(org_des[0] + ' -> ' + org_des[1] + '\n')
+				statsSeries = pd.Series(booked).describe()
+				Utils.writeSeriesToFile(f, statsSeries, indent='	')
+				f.write('\n')
+
+
+
+		# num_total_flights = len(network.f.filterUniqueFlights(n.entities))
+		# num_of_flights_between_cities = network.countFlightsBetweenCities()
+		# num_routes = len(num_of_flights_between_cities.keys())
+
+		# f = open('ICF Summary Statistics.txt', 'w')
 
 		
-		f.write("Total Number of Flights: " + str(num_total_flights) + "\n")
+		# f.write("Total Number of Flights: " + str(num_total_flights) + "\n")
 		
-		f.write("Total Number of Directional Routes: " + str(num_routes) + "\n")
+		# f.write("Total Number of Directional Routes: " + str(num_routes) + "\n")
 
-		f.writelines([str(citypath) + ': ' + str(num_flights) + "\n" for citypath, num_flights in num_of_flights_between_cities.items()])
+		# f.writelines([str(citypath) + ': ' + str(num_flights) + "\n" for citypath, num_flights in num_of_flights_between_cities.items()])
 		
-		f.close()
+		# f.close()
 
 def main():
 	pass
