@@ -12,17 +12,16 @@ from Visualizer import Visualizer
 from Network import Network
 
 def main():
-	pass
 
-
+	num_records = 100000
+	n = Network(num_records)
+	v = Visualizer()
 	# v.CDFCabinLoadFactor(n)
-	# v.bookingCurves(n,org=['DXB'])
+	v.overbookingCurves(n)
 
 if __name__ == '__main__':
 	num_records = 'all'
 	n = Network(num_records)
 	v = Visualizer()
 	v.summaryStatistics(n)
-	
-	
 
