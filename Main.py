@@ -13,11 +13,11 @@ from Network import Network
 
 def main():
 
-	num_records = 1000
+	num_records = 100000
 	n = Network(num_records)
 	v = Visualizer()
 	# v.CDFCabinLoadFactor(n)
-	v.bookingCurves(n,org=['DXB'])
+	v.bookingCurves(n)
 
 if __name__ == '__main__':
 	main()

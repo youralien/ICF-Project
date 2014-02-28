@@ -59,7 +59,7 @@ class Visualizer():
 	
 		"""
 
-		df = network.f.getDrillDown(orgs=['DMM', 'DXB'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101, 117])
+		df = network.f.getDrillDown(orgs=['DXB', 'DMM'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101])
 
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 
@@ -73,7 +73,7 @@ class Visualizer():
 				
 			plt.plot(KEYDAY, BKD)
 			
-		plt.title("Flight Number") 
+		plt.title("DrillDown: Origin DXB DMM, Destination DMM DXB, BC B, FLT 101 for first 100,000 rows") 
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('BKD')
 		plt.show()
@@ -96,7 +96,7 @@ class Visualizer():
 		thinkplot.show(title='Fraction of the cabin filled at departure', 
 					   xlabel='Cabin Load Factor',
 					   ylabel='CDF')
-x
+
 	def summaryStatistics(self, network):
 		""" Creates a text file of summary statistics that may be useful
 		to presenting to preliminary meetings with our advisors/sponsors.
