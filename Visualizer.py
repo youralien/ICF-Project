@@ -96,7 +96,7 @@ class Visualizer():
 		thinkplot.show(title='Fraction of the cabin filled at departure', 
 					   xlabel='Cabin Load Factor',
 					   ylabel='CDF')
-x
+
 	def summaryStatistics(self, network):
 		""" Creates a text file of summary statistics that may be useful
 		to presenting to preliminary meetings with our advisors/sponsors.

@@ -12,15 +12,18 @@ from Visualizer import Visualizer
 from Network import Network
 
 def main():
+	pass
 
-	num_records = 1000
-	n = Network(num_records)
-	v = Visualizer()
+
 	# v.CDFCabinLoadFactor(n)
-	v.bookingCurves(n,org=['DXB'])
+	# v.bookingCurves(n,org=['DXB'])
 
 if __name__ == '__main__':
-	main()
+	num_records = 'all'
+	n = Network(num_records)
+	v = Visualizer()
+
+	booked = n.countTotalBookedPerFlight()
 
 	
 
