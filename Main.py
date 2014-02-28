@@ -17,10 +17,15 @@ def main():
 	n = Network(num_records)
 	v = Visualizer()
 	# v.CDFCabinLoadFactor(n)
-	v.bookingCurves(n)
+	v.overbookingCurves(n)
 
 if __name__ == '__main__':
 	main()
+	# num_records = 'all'
+	# n = Network(num_records)
+	# v = Visualizer()
+
+	# booked = n.countTotalBookedPerFlight()
 
 	
 
