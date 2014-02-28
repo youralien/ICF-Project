@@ -31,18 +31,6 @@ class Visualizer():
 			tick.label.set_rotation('vertical')
 		plt.show()
 
-	def overbookingVsCabinLoadFactor(self, network):
-		"""
-		Investigates how overbooking, which varies with time, also varies 
-		depending on the final cabin load factor.
-
-		Overbooking is defined as AUTH / CAP, where AUTH varies with time.
-
-		Final Cabin Load Factor is defined as TOTALBKD / CAP. 
-		"""
-
-		pass
-
 	def timeVsFlights(self, network):
 		x = network.timeseries()
 		v = Visualizer()
