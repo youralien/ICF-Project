@@ -177,7 +177,6 @@ class Visualizer():
 		to presenting to preliminary meetings with our advisors/sponsors.
 
 		"""
-		
 
 		flights = network.countTotalBookedPerFlight()
 		networkData = [sum(flights[key].values()) for key in flights.keys()]
@@ -199,24 +198,7 @@ class Visualizer():
 				statsSeries = pd.Series(booked).describe()
 				Utils.writeSeriesToFile(f, statsSeries, indent='	')
 				f.write('\n')
-
-
-
-		# num_total_flights = len(network.f.filterUniqueFlights(n.entities))
-		# num_of_flights_between_cities = network.countFlightsBetweenCities()
-		# num_routes = len(num_of_flights_between_cities.keys())
-
-		# f = open('ICF Summary Statistics.txt', 'w')
-
-		
-		# f.write("Total Number of Flights: " + str(num_total_flights) + "\n")
-		
-		# f.write("Total Number of Directional Routes: " + str(num_routes) + "\n")
-
-		# f.writelines([str(citypath) + ': ' + str(num_flights) + "\n" for citypath, num_flights in num_of_flights_between_cities.items()])
-		
-		# f.close()
-
+				
 def main():
 	pass
 

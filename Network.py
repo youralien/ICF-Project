@@ -6,6 +6,7 @@
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 
+import numpy as np
 import pandas as pd
 
 class Network():
@@ -14,8 +15,8 @@ class Network():
 	statistics about the flight network
 	"""
 
-	def __init__(self, nrows):
-		self.f = FeatureFilter(nrows)
+	def __init__(self, nrows, csvfile='Data/BKGDAT_Filtered.txt'):
+		self.f = FeatureFilter(nrows, csvfile)
 															
 	def countFlightsBetweenCities(self):
 		"""
@@ -120,6 +121,10 @@ class Network():
 
 		return ans
 
+	def interp(self, xvals, x, y):
+		x, y = zip(*sorted(zip(x, y), key=lambda tup: tup[0]))
+		return np.interp(xvals, x, y, left=0)
+		
 	def timeseries(self):
 		"""
 		Counts the number of flights that occur along a directed edge (unique

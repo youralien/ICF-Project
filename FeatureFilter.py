@@ -12,7 +12,7 @@ class FeatureFilter():
 		CSV file and groups rows according to various feature values.
 	"""	
 
-	def __init__(self, n, csvfile='Data/BKGDAT_Filtered.txt'):
+	def __init__(self, n, csvfile):
 		self.csvfile = csvfile
 		self.entities = self._loadBookings(n)
 

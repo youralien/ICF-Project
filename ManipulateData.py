@@ -70,7 +70,7 @@ def NormalizeData(oldfilename, newfilename):
 		norm_keyday = round(keyday / max_keydays[flight], precision)
 		norm_totalbkd = round(totalbkd / cap, precision)
 		
-		new_tokens = tokens[:6] + [str(norm_bkd), str(norm_avail), str(norm_auth), str(norm_keyday), str(norm_totalbkd)]
+		new_tokens = tokens[:6 ]+ [str(norm_bkd), str(norm_avail), str(norm_auth), str(norm_keyday), str(norm_totalbkd)]
 		newline = ','.join(new_tokens) + '\n'
 		newfile.write(newline)
 
