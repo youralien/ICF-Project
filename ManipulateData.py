@@ -70,7 +70,7 @@ def NormalizeData(oldfilename, newfilename):
 		norm_keyday = round(keyday / max_keydays[flight], precision)
 		norm_totalbkd = round(totalbkd / cap, precision)
 		
-		new_tokens = tokens[:5] + [str(norm_bkd), str(norm_avail), str(norm_auth), str(norm_keyday), str(norm_totalbkd)]
+		new_tokens = tokens[:6] + [str(norm_bkd), str(norm_avail), str(norm_auth), str(norm_keyday), str(norm_totalbkd)]
 		newline = ','.join(new_tokens) + '\n'
 		newfile.write(newline)
 
@@ -96,5 +96,5 @@ def CopyNRowsOfData(oldfilename, n):
 
 if __name__ == "__main__":
 	# RemoveHourMinuteSecond('Data/BKGDAT.txt', 'Data/BKGDAT_Filtered.txt')
-	# NormalizeData('Data/BKGDAT_Filtered.txt', 'Data/Normalized_BKGDAT_Filtered.txt')
-	CopyNRowsOfData('Data/Normalized_BKGDAT_Filtered.txt', 1000)
+	NormalizeData('Data/BKGDAT_Filtered.txt', 'Data/Normalized_BKGDAT_Filtered.txt')
+	# CopyNRowsOfData('Data/Normalized_BKGDAT_Filtered.txt', 1000)
