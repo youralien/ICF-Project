@@ -172,6 +172,9 @@ class Visualizer():
 					   xlabel='Cabin Load Factor',
 					   ylabel='CDF')
 
+	def stackedBookingCurves(self):
+		pass
+
 	def summaryStatistics(self, network):
 		""" Creates a text file of summary statistics that may be useful
 		to presenting to preliminary meetings with our advisors/sponsors.
@@ -198,7 +201,7 @@ class Visualizer():
 				statsSeries = pd.Series(booked).describe()
 				Utils.writeSeriesToFile(f, statsSeries, indent='	')
 				f.write('\n')
-				
+
 def main():
 	pass
 
