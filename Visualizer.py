@@ -88,17 +88,42 @@ class Visualizer():
 		for g, d in fltbk:
 			AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
 			CAP = d.iloc[0]['CAP']
-
-			print "AUTH: \n", AUTH
-			print "CAP: \n", CAP
 			KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+			
 			plt.plot(KEYDAY, AUTH/float(CAP))
-			break
+			
 
 		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Amount Overbooked: AUTH / CAP')
 		plt.show()
+
+	def overbookingVsCabinLoadFactor(self, network, orgs=None, dests=None, flights=None, 
+							bcs=None, date_range=None):
+		""" Plots how overbooking varies with cabin load factor
+	
+		"""
+		pass
+		# df = network.f.getDrillDown(orgs=['DXB'], dests=['DMM'], bcs=['Y', 'J'], flights=[101])
+		
+		# fltbk = network.f.getUniqueFlightsAndBookings(df)
+
+		# plt.figure()
+		# for g, d in fltbk:
+		# 	d_by_keyday = d.set_index('KEYDAY')			
+		# 	print d_by_keyday
+		# 	# AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+		# 	# CAP = d.iloc[0]['CAP']
+		# 	# print "AUTH: \n", AUTH
+		# 	# KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+			
+		# 	# plt.plot(KEYDAY, AUTH/float(CAP))
+		# 	break			
+
+		# plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
+		# plt.xlabel('-KEYDAY')
+		# plt.ylabel('Amount Overbooked: AUTH / CAP')
+		# plt.show()
 
 	def bookingCurves(self, network, orgs=None, dests=None, flights=None, 
 						cabin=None, bcs=None, date_range=None):
