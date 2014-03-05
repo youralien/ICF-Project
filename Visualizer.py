@@ -82,13 +82,14 @@ class Visualizer():
 		"""
 		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
 							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
-		
+
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 
 		plt.figure()
 		
 		if normalized:
 			for g, d in fltbk:
+				# normalized AUTH == OVERBOOKED
 				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
 				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 				
@@ -107,31 +108,85 @@ class Visualizer():
 		plt.show()
 
 	def overbookingVsCabinLoadFactor(self, network, orgs=None, dests=None, flights=None, 
-							cabins=None, bcs=None, date_ranges=None):
-		""" Plots how overbooking varies with cabin load factor
-	
+							cabins=None, bcs=None, date_ranges=None, normalized=True):
+		""" Plots how overbooking varies with Cabin load factor.  Final Cabin Load Factor
+		for a particular flight booking class is binned into three separate categories:
+		
+		Overbooked: CLF > 1
+		Underbooked: CLF < .8
+		Optimumly booked: .8 < CLF < 1
+		
 		"""
 		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
 							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
-		
-		# fltbk = network.f.getUniqueFlightsAndBookings(df)
 
-		# plt.figure()
-		# for g, d in fltbk:
-		# 	d_by_keyday = d.set_index('KEYDAY')			
-		# 	print d_by_keyday
-		# 	# AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
-		# 	# CAP = d.iloc[0]['CAP']
-		# 	# print "AUTH: \n", AUTH
-		# 	# KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
-			
-		# 	# plt.plot(KEYDAY, AUTH/float(CAP))
-		# 	break			
+		fltbk = network.f.getUniqueFlightsAndBookings(df)
+		# TODO: allow for countFinalCabinLoadFactor to use normalized data		
+		CLF_dict = network.countFinalCabinLoadFactor()
 
-		# plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
-		# plt.xlabel('-KEYDAY')
-		# plt.ylabel('Amount Overbooked: AUTH / CAP')
-		# plt.show()
+		plt.figure()
+		# preparing to capture the legend handles
+		legend_over = None
+		legend_under = None
+		legend_optimum = None
+
+		if normalized:
+			for g, d in fltbk:
+				# normalized AUTH == OVERBOOKED
+				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+				DATE = d.iloc[0]['DATE']
+				FLT = d.iloc[0]['FLT']
+				ORG = d.iloc[0]['ORG']
+				DES = d.iloc[0]['DES']
+				
+				#TODO: See CLF_dict (above)
+				CABIN_LOAD_FACTOR = CLF_dict[(DATE, FLT, ORG, DES)]
+
+				if CABIN_LOAD_FACTOR > 1:
+					plt.plot(KEYDAY, AUTH, 'x-')
+				elif CABIN_LOAD_FACTOR < .8: 
+					plt.plot(KEYDAY, AUTH, 'o-')
+				else:
+					plt.plot(KEYDAY, AUTH, '-^')
+		else:
+			for g, d in fltbk:
+				
+				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				CAP = float(d.iloc[0]['CAP'])
+				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+				DATE = d.iloc[0]['DATE']
+				FLT = d.iloc[0]['FLT']
+				ORG = d.iloc[0]['ORG']
+				DES = d.iloc[0]['DES']
+
+				CABIN_LOAD_FACTOR = CLF_dict[(DATE, FLT, ORG, DES)]
+
+				
+
+
+				if CABIN_LOAD_FACTOR > 1:
+					if not legend_over:
+						legend_over, = plt.plot(KEYDAY, AUTH/CAP , 'x-')
+					else:
+						plt.plot(KEYDAY, AUTH/CAP , 'x-')
+				elif CABIN_LOAD_FACTOR < .8: 
+					if not legend_under:
+						legend_under, = plt.plot(KEYDAY, AUTH/CAP, 'o-')
+					else:
+						plt.plot(KEYDAY, AUTH/CAP, 'o-')
+				else:
+					if not legend_optimum:
+						legend_optimum, = plt.plot(KEYDAY, AUTH/CAP, '^-')
+					else:
+						plt.plot(KEYDAY, AUTH/CAP, '^-')
+
+		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
+		plt.xlabel('-KEYDAY')
+		plt.ylabel('Percentage Overbooked: AUTH / CAP')
+
+		plt.legend([legend_over, legend_under, legend_optimum], ["Cabin Load Factor > 1", "Cabin Load Factor < .8", ".8 < Cabin Load Factor < 1"])
+		plt.show()
 
 	def bookingCurves(self, network, orgs=None, dests=None, flights=None, 
 						cabins=None, bcs=None, date_ranges=None):
