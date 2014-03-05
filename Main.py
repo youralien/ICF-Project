@@ -68,6 +68,11 @@ def main():
 	# plt.show()
 
 if __name__ == '__main__':
-	main()
+	
+	num_records = 1500
+	filename = 'Data/Normalized_BKGDAT_Filtered.txt'
+	n = Network(num_records, filename)
+	v = Visualizer()
+	v.bookingCurves(n, orgs=['DXB'], dests=['DMM'], bcs=['Y', 'J'], flights=[101], date_ranges=['1/1/2013'],) #normalized=True) 
 	
 

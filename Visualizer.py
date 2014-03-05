@@ -42,7 +42,7 @@ class Visualizer():
 		v.plotTimeSeries(x[keys[0]])
 
 	def authCurves(self, network, orgs=None, dests=None, flights=None, 
-					bcs=None, date_range=None):
+					cabins=None, bcs=None, date_ranges=None):
 		""" Plots AUTH curves for some subset of the data.
 		
 		AUTH is stated at the level of a cabin-booking class.  AUTH changes
@@ -55,8 +55,9 @@ class Visualizer():
 	
 		"""
 
-		df = network.f.getDrillDown(orgs=['DXB'], dests=['DMM'], bcs=['Y', 'J'], flights=[101])
-		
+		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
+							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
+
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 
 		plt.figure()
@@ -72,39 +73,46 @@ class Visualizer():
 		plt.show()
 
 	def overbookingCurves(self, network, orgs=None, dests=None, flights=None, 
-							bcs=None, date_range=None):
+						cabins=None, bcs=None, date_ranges=None, normalized=True):
 		""" Plots overbooking curves for some subset of the data.
 		
 		Overbooking is defined where AUTH > CAP.  We plot overbooking as a 
 		ratio between AUTH and CAP.  Overbooking varies with time.
 	
 		"""
-
-		df = network.f.getDrillDown(orgs=['DXB'], dests=['DMM'], bcs=['Y', 'J'], flights=[101])
+		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
+							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
 		
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 
 		plt.figure()
-		for g, d in fltbk:
-			AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
-			CAP = d.iloc[0]['CAP']
-			KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
-			
-			plt.plot(KEYDAY, AUTH/float(CAP))
-			
+		
+		if normalized:
+			for g, d in fltbk:
+				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+				
+				plt.plot(KEYDAY, AUTH)
+		else:
+			for g, d in fltbk:
+				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				CAP = d.iloc[0]['CAP']
+				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
+				
+				plt.plot(KEYDAY, AUTH/float(CAP))
 
 		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
 		plt.xlabel('-KEYDAY')
-		plt.ylabel('Amount Overbooked: AUTH / CAP')
+		plt.ylabel('Percentage Overbooked: AUTH / CAP')
 		plt.show()
 
 	def overbookingVsCabinLoadFactor(self, network, orgs=None, dests=None, flights=None, 
-							bcs=None, date_range=None):
+							cabins=None, bcs=None, date_ranges=None):
 		""" Plots how overbooking varies with cabin load factor
 	
 		"""
-		pass
-		# df = network.f.getDrillDown(orgs=['DXB'], dests=['DMM'], bcs=['Y', 'J'], flights=[101])
+		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
+							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
 		
 		# fltbk = network.f.getUniqueFlightsAndBookings(df)
 
@@ -126,7 +134,7 @@ class Visualizer():
 		# plt.show()
 
 	def bookingCurves(self, network, orgs=None, dests=None, flights=None, 
-						cabin=None, bcs=None, date_range=None):
+						cabins=None, bcs=None, date_ranges=None):
 		""" Plots booking curves for some subset of the data.
 		
 		A booking curve tracks the number of seats booked over time, starting 
@@ -134,8 +142,8 @@ class Visualizer():
 	
 		"""
 
-		df = network.f.getDrillDown(orgs=['DXB', 'DMM'], dests=['DXB', 'DMM'], bcs=['B'], flights=[101])
-
+		df = network.f.getDrillDown(orgs=orgs, dests=dests, flights=flights,
+							cabins=cabins, bcs=bcs, date_ranges=date_ranges)
 		fltbk = network.f.getUniqueFlightsAndBookings(df)
 
 		plt.figure()
