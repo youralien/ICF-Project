@@ -13,15 +13,15 @@ from Network import Network
 
 def main():
 
-	num_records = 'all'
-	filename = 'Data/BKGDAT_Filtered.txt'
+	num_records = 1500
+	filename = 'Data/Normalized_BKGDAT_Filtered.txt'
 	n = Network(num_records, filename)
 	v = Visualizer()
+	v.stackedBookingCurve(n, orgs=['DXB'], dests=['DMM'], date_ranges=['1/1/2013'], flights=[101])
 	# v.numFlightsByDayOfWeek(n)
-	v.numPassengersByDayOfWeek(n)
+	# v.numPassengersByDayOfWeek(n)
 
 def overbookingVsCabinLoadFactor():
-
 	num_records = 10000
 	filename = 'Data/BKGDAT_Filtered.txt'
 	n = Network(num_records, filename)
@@ -34,7 +34,7 @@ def overbookingVsCabinLoadFactor():
 									 normalized=False)
 
 if __name__ == '__main__':
-	
-	overbookingVsCabinLoadFactor()
+	# overbookingVsCabinLoadFactor()
+	main()
 	
 
