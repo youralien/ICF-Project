@@ -267,7 +267,8 @@ class Visualizer():
 		"""
 		Generate a summative booking curve for a given flight. In order for this
 		function to work properly the arguments must specify one specific flight
-		(or a subset of the booking classes on a specific flight)
+		(or a subset of the booking classes on a specific flight). Additionally,
+		the network must have been create using a normalized data set.
 		"""
 
 		first_flights = network.f.getDrillDown(orgs=orgs, dests=dests, 
@@ -298,7 +299,7 @@ class Visualizer():
 			plt.plot(xvals, interps_sum[i])
 
 		plt.legend(labels, loc=6, prop={'size': 14})
-		plt.title('Summative Booking Curve')
+		plt.title('Summative Booking Curve\n' + Utils.createTitleForFeatures(orgs, dests, flights, cabins, bcs, date_ranges))
 		plt.xlabel('Normalized Keyday')
 		plt.ylabel('Normalized Booked')
 		plt.show()
