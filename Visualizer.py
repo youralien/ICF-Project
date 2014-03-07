@@ -172,8 +172,80 @@ class Visualizer():
 					   xlabel='Cabin Load Factor',
 					   ylabel='CDF')
 
-	def stackedBookingCurves(self):
-		pass
+	def stackedBookingCurve(self, network, orgs=None, dests=None, 
+		                     flights=None, cabins=None, bcs=None, 
+		                     date_ranges=None):
+		"""
+		Generate a summative booking curve for a given flight. In order for this
+		function to work properly the arguments must specify one specific flight
+		(or a subset of the booking classes on a specific flight)
+		"""
+
+		first_flights = network.f.getDrillDown(orgs=orgs, dests=dests, 
+											   flights=flights, cabins=cabins, 
+											   bcs=bcs, date_ranges=date_ranges)
+		groupedByBookings = network.f.getUniqueFlightsAndBookings(first_flights)
+		xvals = np.linspace(-1, 0, 101)
+		interps = None
+		labels = [g[4] for g, d in groupedByBookings]
+
+		for g, d in groupedByBookings:
+			keydays = -d['KEYDAY']
+			booked = d['BKD']
+			yvals = network.interp(xvals, keydays, booked)
+			if interps == None:
+				interps = yvals
+			else:
+				interps = np.vstack((interps, yvals))
+
+		# interps is my matrix
+		m, n = interps.shape
+		interps_sum = np.zeros((m,n))
+		for i in range(m-1):
+			for j in range(i+1, m):
+				interps_sum[j] += interps[i]
+
+		for i in range(m):
+			plt.plot(xvals, interps_sum[i])
+
+		plt.legend(labels, loc=6, prop={'size': 14})
+		plt.title('Summative Booking Curve')
+		plt.xlabel('Normalized Keyday')
+		plt.ylabel('Normalized Booked')
+		plt.show()
+
+	def numFlightsByDayOfWeek(self, network):
+		flights = network.f.getUniqueFlights()
+		day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+		num_flights = np.zeros(7)
+
+		for group, df in flights:
+			date = group[0]
+			day = Utils.date2DayOfWeek(date)
+			num_flights[day_names.index(day)] += 1
+
+		fracs = [flight / num_flights.sum() for flight in num_flights]
+	
+		plt.pie(fracs, labels=day_names, autopct='%1.1f%%', colors=("b","g","r","y", "c", "w", "m"))
+		plt.title('Total Number of Flights by Day of Week')
+		plt.show()
+
+	def numPassengersByDayOfWeek(self, network):
+		flights = network.countTotalBookedPerFlight()
+		day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+		num_peeps = np.zeros(7)
+
+		for key, val in flights.items():
+			date = key[0]
+			day = Utils.date2DayOfWeek(date)
+			num_peeps[day_names.index(day)] += sum(val.values())
+
+		fracs = [val / num_peeps.sum() for val in num_peeps]
+
+		plt.pie(fracs, labels=day_names, autopct='%1.1f%%', colors=("b","g","r","y", "c", "w", "m"))
+		plt.title('Total Number of Passengers by Day of Week')
+		plt.show()
+
 
 	def summaryStatistics(self, network):
 		""" Creates a text file of summary statistics that may be useful
