@@ -65,6 +65,23 @@ class Utils():
 			line = indent + str(index) + ": " + str(series[index]) + '\n'
 			f.write(line)
 
+	@staticmethod
+	def createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges):
+		""" Creates Plot Title that includes the user's getDrillDown args
+		"""
+		# Handle features that were not specified for drill down 
+		orgs = 'all' if orgs==None else str(orgs).strip("[]")
+		dests = 'all' if dests==None else str(dests).strip("[]")
+		flights = 'all' if flights==None else str(flights).strip("[]")
+		cabins = 'all' if cabins==None else str(cabins).strip("[]")
+		bcs = 'all' if bcs==None else str(bcs).strip("[]")
+		date_ranges = 'all' if date_ranges==None else str(date_ranges).strip("[]")
+
+		title = "Origin: {} | Destination: {}\n Flight: {} | Cabin: {}\n Booking Class: {} | Date: {}" 
+		
+		# Format title string with specific drillDown args
+		return title.format(orgs,dests,flights,cabins,bcs,date_ranges)
+
 def main():
 	pass
 	

@@ -67,7 +67,8 @@ class Visualizer():
 
 			plt.plot(KEYDAY, AUTH)
 
-		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
+		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
+		plt.title(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('AUTH')
 		plt.show()
@@ -102,7 +103,8 @@ class Visualizer():
 				
 				plt.plot(KEYDAY, AUTH/float(CAP))
 
-		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
+		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
+		plt.title(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Percentage Overbooked: AUTH / CAP')
 		plt.show()
@@ -181,7 +183,8 @@ class Visualizer():
 					else:
 						plt.plot(KEYDAY, AUTH/CAP, '^-')
 
-		plt.title('Orgs DXB, Dests DMM, bcs Y and J, flights 101 for first 100,000 rows')
+		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
+		plt.title(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Percentage Overbooked: AUTH / CAP')
 
@@ -211,7 +214,8 @@ class Visualizer():
 				
 			plt.plot(KEYDAY, BKD)
 			
-		plt.title("DrillDown: Origin DXB DMM, Destination DMM DXB, BC B, FLT 101 for first 100,000 rows") 
+		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
+		plt.title(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('BKD')
 		plt.show()
