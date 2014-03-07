@@ -86,7 +86,7 @@ class Utils():
 	@staticmethod
 	def isOverbooked(bookings):
 		""" is any value for bookings overbooked? At some point is AUTH > CAP?
-
+		
 		bookings: np array
 		"""
 
