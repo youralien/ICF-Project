@@ -83,6 +83,22 @@ class Utils():
 		# Format title string with specific drillDown args
 		return title.format(orgs,dests,flights,cabins,bcs,date_ranges)
 
+	@staticmethod
+	def isOverbooked(bookings):
+		""" is any value for bookings overbooked? At some point is AUTH > CAP?
+
+		bookings: np array
+		"""
+
+		overbooked = False
+
+		for e in bookings:
+			if e > 1:
+				overbooked = True
+
+		return overbooked
+
+
 def main():
 	pass
 	

@@ -29,7 +29,7 @@ def overbookingVsCabinLoadFactor():
 	v = Visualizer()
 	v.overbookingVsCabinLoadFactor(n, orgs=['DXB', 'DMM'],
 									 dests=['DMM', 'DXB'], 
-									 bcs=['Y'], 
+									 bcs=['J'], 
 									 #date_ranges=['1/1/2013'], 
 									 normalized=False)
 

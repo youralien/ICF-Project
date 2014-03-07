@@ -92,16 +92,27 @@ class Visualizer():
 			for g, d in fltbk:
 				# normalized AUTH == OVERBOOKED
 				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				
+				# ignore time series that are not overbooked
+				if not Utils.isOverbooked(AUTH):
+					continue
+
 				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 				
 				plt.plot(KEYDAY, AUTH)
 		else:
 			for g, d in fltbk:
 				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
-				CAP = d.iloc[0]['CAP']
+				CAP = float(d.iloc[0]['CAP'])
+				OVRBKD = AUTH/CAP
+
+				# ignore time series that are not overbooked
+				if not Utils.isOverbooked(OVRBKD):
+					continue
+
 				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 				
-				plt.plot(KEYDAY, AUTH/float(CAP))
+				plt.plot(KEYDAY, OVRBKD)
 
 		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
 		plt.title(title)
@@ -136,6 +147,11 @@ class Visualizer():
 			for g, d in fltbk:
 				# normalized AUTH == OVERBOOKED
 				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
+				
+				# ignore time series that are not overbooked
+				if not Utils.isOverbooked(AUTH):
+					continue
+
 				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 				DATE = d.iloc[0]['DATE']
 				FLT = d.iloc[0]['FLT']
@@ -156,6 +172,12 @@ class Visualizer():
 				
 				AUTH = np.array(d.sort(columns='KEYDAY', ascending=False)['AUTH'])
 				CAP = float(d.iloc[0]['CAP'])
+				OVRBKD = AUTH/CAP
+
+				# ignore time series that are not overbooked
+				if not Utils.isOverbooked(OVRBKD):
+					continue
+
 				KEYDAY = np.array(-d.sort(columns='KEYDAY', ascending=False)['KEYDAY'])
 				DATE = d.iloc[0]['DATE']
 				FLT = d.iloc[0]['FLT']
@@ -169,19 +191,19 @@ class Visualizer():
 
 				if CABIN_LOAD_FACTOR > 1:
 					if not legend_over:
-						legend_over, = plt.plot(KEYDAY, AUTH/CAP , 'x-')
+						legend_over, = plt.plot(KEYDAY, OVRBKD , 'x-')
 					else:
-						plt.plot(KEYDAY, AUTH/CAP , 'x-')
+						plt.plot(KEYDAY, OVRBKD , 'x-')
 				elif CABIN_LOAD_FACTOR < .8: 
 					if not legend_under:
-						legend_under, = plt.plot(KEYDAY, AUTH/CAP, 'o-')
+						legend_under, = plt.plot(KEYDAY, OVRBKD, 'o-')
 					else:
-						plt.plot(KEYDAY, AUTH/CAP, 'o-')
+						plt.plot(KEYDAY, OVRBKD, 'o-')
 				else:
 					if not legend_optimum:
-						legend_optimum, = plt.plot(KEYDAY, AUTH/CAP, '^-')
+						legend_optimum, = plt.plot(KEYDAY, OVRBKD, '^-')
 					else:
-						plt.plot(KEYDAY, AUTH/CAP, '^-')
+						plt.plot(KEYDAY, OVRBKD, '^-')
 
 		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
 		plt.title(title)
