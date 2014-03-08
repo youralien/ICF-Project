@@ -121,7 +121,8 @@ class Visualizer():
 		plt.show()
 
 	def overbookingVsCabinLoadFactor(self, network, orgs=None, dests=None, flights=None, 
-							cabins=None, bcs=None, date_ranges=None, normalized=True):
+									cabins=None, bcs=None, date_ranges=None, 
+									normalized=True, subplots=True):
 		""" Plots how overbooking varies with Cabin load factor.  Final Cabin Load Factor
 		for a particular flight booking class is binned into three separate categories:
 		
@@ -190,22 +191,26 @@ class Visualizer():
 
 
 				if CABIN_LOAD_FACTOR > 1:
+					plt.subplot(311) if subplots else None
 					if not legend_over:
 						legend_over, = plt.plot(KEYDAY, OVRBKD , 'y')
 					else:
 						plt.plot(KEYDAY, OVRBKD , 'y')
 				elif CABIN_LOAD_FACTOR < .95: 
+					plt.subplot(313) if subplots else None
 					if not legend_under:
 						legend_under, = plt.plot(KEYDAY, OVRBKD, 'r')
 					else:
 						plt.plot(KEYDAY, OVRBKD, 'r')
 				else:
+					plt.subplot(312) if subplots else None
 					if not legend_optimum:
 						legend_optimum, = plt.plot(KEYDAY, OVRBKD, 'g')
 					else:
 						plt.plot(KEYDAY, OVRBKD, 'g')
 
 		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
+		plt.subplot(311) if subplots else None
 		plt.title(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Percentage Overbooked: AUTH / CAP')
