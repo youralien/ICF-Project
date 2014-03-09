@@ -163,9 +163,9 @@ class Visualizer():
 				CABIN_LOAD_FACTOR = CLF_dict[(DATE, FLT, ORG, DES)]
 
 				if CABIN_LOAD_FACTOR > 1:
-					plt.plot(KEYDAY, AUTH, 'y')
-				elif CABIN_LOAD_FACTOR < .95: 
 					plt.plot(KEYDAY, AUTH, 'r')
+				elif CABIN_LOAD_FACTOR < .95: 
+					plt.plot(KEYDAY, AUTH, 'y')
 				else:
 					plt.plot(KEYDAY, AUTH, 'g')
 		else:
@@ -193,15 +193,15 @@ class Visualizer():
 				if CABIN_LOAD_FACTOR > 1:
 					plt.subplot(311) if subplots else None
 					if not legend_over:
-						legend_over, = plt.plot(KEYDAY, OVRBKD , 'y')
+						legend_over, = plt.plot(KEYDAY, OVRBKD , 'r')
 					else:
-						plt.plot(KEYDAY, OVRBKD , 'y')
+						plt.plot(KEYDAY, OVRBKD , 'r')
 				elif CABIN_LOAD_FACTOR < .95: 
 					plt.subplot(313) if subplots else None
 					if not legend_under:
-						legend_under, = plt.plot(KEYDAY, OVRBKD, 'r')
+						legend_under, = plt.plot(KEYDAY, OVRBKD, 'y')
 					else:
-						plt.plot(KEYDAY, OVRBKD, 'r')
+						plt.plot(KEYDAY, OVRBKD, 'y')
 				else:
 					plt.subplot(312) if subplots else None
 					if not legend_optimum:

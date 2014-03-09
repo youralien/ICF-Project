@@ -22,7 +22,7 @@ def main():
 	# v.numPassengersByDayOfWeek(n)
 
 def overbookingVsCabinLoadFactor():
-	num_records = 'all'
+	num_records = 100000
 	filename = 'Data/BKGDAT_Filtered.txt'
 	n = Network(num_records, filename)
 	
@@ -31,7 +31,9 @@ def overbookingVsCabinLoadFactor():
 									 dests=['DMM', 'FCO'], 
 									 bcs=['Y'], 
 									 #date_ranges=['1/1/2013'], 
-									 normalized=False)
+									 normalized=False,
+									 subplots=True
+									 )
 
 if __name__ == '__main__':
 	overbookingVsCabinLoadFactor()
