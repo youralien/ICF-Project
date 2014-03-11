@@ -5,6 +5,7 @@
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import pylab
 import thinkplot
 import thinkstats2
 from math import isnan, isinf
@@ -138,7 +139,7 @@ class Visualizer():
 		# TODO: allow for countFinalCabinLoadFactor to use normalized data		
 		CLF_dict = network.countFinalCabinLoadFactor()
 
-		plt.figure()
+		fig = plt.figure()
 		# preparing to capture the legend handles
 		legend_over = None
 		legend_under = None
@@ -211,9 +212,16 @@ class Visualizer():
 
 		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
 		plt.subplot(311) if subplots else None
-		plt.title(title)
+		plt.suptitle(title)
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Percentage Overbooked: AUTH / CAP')
+		plt.subplot(311)		
+		plt.ylim([0,3.5])
+		plt.subplot(312)		
+		plt.ylim([0,3.5])
+		plt.subplot(313)		
+		plt.ylim([0,3.5])
+
 
 		plt.legend([legend_over, legend_under, legend_optimum], ["Cabin Load Factor > 1", "Cabin Load Factor < .95", "Optimum Cabin Load Factor"])
 		plt.show()
