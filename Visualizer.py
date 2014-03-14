@@ -144,6 +144,9 @@ class Visualizer():
 		legend_over = None
 		legend_under = None
 		legend_optimum = None
+		n_over = 0
+		n_under = 0
+		n_optimum = 0
 
 		if normalized:
 			for g, d in fltbk:
@@ -197,18 +200,23 @@ class Visualizer():
 						legend_over, = plt.plot(KEYDAY, OVRBKD , 'r')
 					else:
 						plt.plot(KEYDAY, OVRBKD , 'r')
+					n_over += 1
+
 				elif CABIN_LOAD_FACTOR < .95: 
 					plt.subplot(313) if subplots else None
 					if not legend_under:
 						legend_under, = plt.plot(KEYDAY, OVRBKD, 'y')
 					else:
 						plt.plot(KEYDAY, OVRBKD, 'y')
+					n_under += 1
+
 				else:
 					plt.subplot(312) if subplots else None
 					if not legend_optimum:
 						legend_optimum, = plt.plot(KEYDAY, OVRBKD, 'g')
 					else:
 						plt.plot(KEYDAY, OVRBKD, 'g')
+					n_optimum += 1
 
 		title = Utils.createTitleForFeatures(orgs,dests,flights,cabins,bcs,date_ranges)
 		plt.subplot(311) if subplots else None
@@ -216,14 +224,18 @@ class Visualizer():
 		plt.xlabel('-KEYDAY')
 		plt.ylabel('Percentage Overbooked: AUTH / CAP')
 		plt.subplot(311)		
-		plt.ylim([0,3.5])
+		plt.ylim([.25,2])
 		plt.subplot(312)		
-		plt.ylim([0,3.5])
+		plt.ylim([.25,2])
 		plt.subplot(313)		
-		plt.ylim([0,3.5])
+		plt.ylim([.25,2])
 
 
-		plt.legend([legend_over, legend_under, legend_optimum], ["Cabin Load Factor > 1", "Cabin Load Factor < .95", "Optimum Cabin Load Factor"])
+		plt.legend([legend_over, legend_optimum, legend_under], 
+			["Cabin Load Factor > 1, n={}".format(n_over),
+			"Optimum Cabin Load Factor,n={}".format(n_optimum), 
+			"Cabin Load Factor < .95, n={}".format(n_under) 
+			])
 		plt.show()
 
 	def bookingCurves(self, network, orgs=None, dests=None, flights=None, 
