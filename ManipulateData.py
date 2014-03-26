@@ -20,6 +20,8 @@ def RemoveHourMinuteSecond(oldfilename, newfilename):
 
 def NormalizeData(oldfilename, newfilename):
 	oldfile = open(oldfilename, 'r')
+	
+	# Find Max KeyDays in Each Flight and Save to dictionary
 	max_keydays = {}
 	header = True
 	for oldline in oldfile:
@@ -36,8 +38,10 @@ def NormalizeData(oldfilename, newfilename):
 	oldfile = open(oldfilename, 'r')
 	newfile = open(newfilename, 'w')
 
+	# Do the Normalization Division Occurs
 	precision = 2
 
+	# Don't touch Header Data Labels
 	header = True
 	index = 1
 	for oldline in oldfile:
@@ -93,8 +97,60 @@ def CopyNRowsOfData(oldfilename, n):
 	oldfile.close()
 	newfile.close()
 
+def RemoveTotalBookedZeroFlights(oldfilename, newfilename):
+
+	oldfile = open(oldfilename, 'r')
+	newfile = open(newfilename, 'w')
+
+	# Run Through to find sum(bkd) == 0 or not (Boring Curves)
+	flights_sumbkd = {}
+	header = True
+	for i, oldline in enumerate(oldfile):
+		print i
+		if header:
+			header = False
+			continue
+		tokens = oldline.strip().split(',')
+		flight = tuple(tokens[:4]) + tuple(tokens[5])
+		bkd = float(tokens[6])
+		
+		flights_sumbkd[flight] = flights_sumbkd.get(flight, 0) + bkd
+
+	oldfile.close()
+	newfile.close()
+
+	oldfile = open(oldfilename, 'r')
+	newfile = open(newfilename, 'w')
+
+	#Don't touch Header Data Labels
+	header = True
+	for i, oldline in enumerate(oldfile):
+		print i
+		if header:
+			header = False
+			newfile.write(oldline)
+			continue
+
+		tokens = oldline.strip().split(',')
+
+		flight = tuple(tokens[:4]) + tuple(tokens[5])
+
+		if flights_sumbkd[flight] == 0:
+			continue
+
+		if float(tokens[10]) == 0:
+			continue
+
+		newline = ','.join(tokens) + '\n'
+		newfile.write(newline)
+
+	oldfile.close()
+	newfile.close()
 
 if __name__ == "__main__":
 	# RemoveHourMinuteSecond('Data/BKGDAT.txt', 'Data/BKGDAT_Filtered.txt')
-	NormalizeData('Data/BKGDAT_Filtered.txt', 'Data/Normalized_BKGDAT_Filtered.txt')
+	#NormalizeData('Data/BKGDAT_Filtered.txt', 'Data/Normalized_BKGDAT_Filtered.txt')
 	# CopyNRowsOfData('Data/Normalized_BKGDAT_Filtered.txt', 1000)
+	RemoveTotalBookedZeroFlights('Data/Normalized_BKGDAT_Filtered.txt',
+								'Data/Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt')
+	
