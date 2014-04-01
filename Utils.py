@@ -98,6 +98,14 @@ class Utils():
 
 		return overbooked
 
+	@staticmethod
+	def sortByIndex(index, *args):
+		consolidated = (index,) + args
+		zip_args = zip(*consolidated)
+		sorted_args = sorted(zip_args, key=lambda tup: tup[0])
+		unzipped_args = zip(*sorted_args)
+		return unzipped_args
+
 
 def main():
 	pass
