@@ -18,8 +18,6 @@ def main():
 	n = Network(num_records, filename)
 	v = Visualizer()
 	v.stackedBookingCurve(n, orgs=['DXB'], dests=['DMM'], date_ranges=['1/1/2013'], flights=[101])
-	# v.numFlightsByDayOfWeek(n)
-	# v.numPassengersByDayOfWeek(n)
 
 def overbookingVsCabinLoadFactor():
 	num_records = 'all'
