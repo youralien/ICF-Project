@@ -120,10 +120,15 @@ class Network():
 				ans.append((cabin_load_factor, percent_overbooked))
 
 		return ans
+		
 
 	def interp(self, xvals, x, y):
 		x, y = zip(*sorted(zip(x, y), key=lambda tup: tup[0]))
 		return np.interp(xvals, x, y, left=0)
+
+	def residuals(self, x):
+		return diff(x)
+
 		
 	def timeseries(self):
 		"""
@@ -143,7 +148,12 @@ class Network():
 		return time_series
 
 def main():
-	pass
+	n = Network(2)
+	keyday = [3, 2, 1, 0]
+	a = [0, 1, 2, 3]
+	b = [4, 5, 6, 7]
+
+	print n.sortByIndex(keyday, a, b)
 
 if __name__ == '__main__':
 	main()

@@ -98,9 +98,21 @@ class Utils():
 
 		return overbooked
 
+	@staticmethod
+	def sortByIndex(index, *args):
+		if args == ():
+			return index
+
+		consolidated = (index,) + args
+		zip_args = zip(*consolidated)
+		sorted_args = sorted(zip_args, key=lambda tup: tup[0])
+		unzipped_args = zip(*sorted_args)
+		return unzipped_args
+
 
 def main():
-	pass
+	index = [0, 1, 2, 3]
+	print Utils.sortByIndex(index)
 	
 if __name__ == '__main__':
 	main()
