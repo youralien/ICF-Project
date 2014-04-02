@@ -300,12 +300,12 @@ class Visualizer():
 											   flights=flights, cabins=cabins, 
 											   bcs=bcs, date_ranges=date_ranges)
 		groupedByBookings = network.f.getUniqueFlightsAndBookings(first_flights)
-		xvals = np.linspace(-1, 0, 101)
+		xvals = np.linspace(-1, 0, 101) # Increments of .01 from -1 -> 0
 		interps = None
 		labels = [g[4] for g, d in groupedByBookings]
 
 		for g, d in groupedByBookings:
-			keydays = -d['KEYDAY']
+			keydays = -d['KEYDAY'] 
 			booked = d['BKD']
 			yvals = network.interp(xvals, keydays, booked)
 			if interps == None:

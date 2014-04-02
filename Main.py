@@ -34,7 +34,8 @@ def overbookingVsCabinLoadFactor():
 									 )
 
 if __name__ == '__main__':
-	# overbookingVsCabinLoadFactor()
-	main()
-	
+	num_records = 'all'
+	filename = 'Data/Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt'
+	n = Network(num_records, filename)
+	v = Visualizer()
 
