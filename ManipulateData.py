@@ -18,6 +18,17 @@ def RemoveHourMinuteSecond(oldfilename, newfilename):
 	oldfile.close()
 	newfile.close()
 
+def RemoveQuotationMarks(oldfilename, newfilename):
+	oldfile = open(oldfilename, 'r')
+	newfile = open(newfilename, 'w')
+
+	for oldline in oldfile:
+		newline = oldline.replace('"', '')
+		newfile.write(newline)
+
+	oldfile.close()
+	newfile.close()
+
 def NormalizeData(oldfilename, newfilename):
 	oldfile = open(oldfilename, 'r')
 	
@@ -148,9 +159,5 @@ def RemoveTotalBookedZeroFlights(oldfilename, newfilename):
 	newfile.close()
 
 if __name__ == "__main__":
-	# RemoveHourMinuteSecond('Data/BKGDAT.txt', 'Data/BKGDAT_Filtered.txt')
-	#NormalizeData('Data/BKGDAT_Filtered.txt', 'Data/Normalized_BKGDAT_Filtered.txt')
-	# CopyNRowsOfData('Data/Normalized_BKGDAT_Filtered.txt', 1000)
-	RemoveTotalBookedZeroFlights('Data/Normalized_BKGDAT_Filtered.txt',
-								'Data/Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt')
+	RemoveQuotationMarks('Data/BKGDAT_Filtered.txt', 'Data/BKGDAT_MOAR_Filtered.txt')
 	
