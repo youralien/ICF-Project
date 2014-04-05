@@ -111,8 +111,7 @@ class Utils():
 
 
 def main():
-	index = [0, 1, 2, 3]
-	print Utils.sortByIndex(index)
+	print Utils.date2DayOfWeek('04/01/2014')
 	
 if __name__ == '__main__':
 	main()
