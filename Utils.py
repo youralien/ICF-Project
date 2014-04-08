@@ -53,7 +53,7 @@ class Utils():
 				return c, r
 
 		raise Exception('Booking Class not found')
-
+	
 	@staticmethod
 	def mapCabinToBookingClass(cabin):
 		"""

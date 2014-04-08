@@ -11,7 +11,7 @@ from Utils import Utils
 from Visualizer import Visualizer
 from Network import Network
 
-def testTrainSplit(df, p):
+def testTrainSplit(n, df, p):
     unique_flights = n.f.getUniqueFlights(df)
     X_train, X_test = None, None
     y_train, y_test = None, None
@@ -46,7 +46,7 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        features = (bkd[1:], avail[1:], auth[1:], keyday[1:], deltaT)
+        features = (bkd[1:], avail[1:], auth[1:], keyday[1:], delta_t)
         features = np.column_stack(features)
         
         X = stackMatrices(X, features)
@@ -73,7 +73,7 @@ def stackMatrices(x, new_x):
     if x is None:
         x = new_x
     else:
-        x = np.vstack(x, new_x)
+        x = np.vstack((x, new_x))
 
     return x
 
@@ -95,7 +95,7 @@ def encodeDate(date):
 def encodeBookingClass(bc):
     """ Returns a 1-to-K encoding of BC."""
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
-    encoded_vector = [0] * len(Utils.bc_hierarchy)
+    encoded_vector = [0] * len(Utils.bc_economy_hierarchy)
     encoded_vector[rank] = 1
     return encoded_vector
 
@@ -269,7 +269,7 @@ def meanPercentError(actual, predicted):
 def main():
     data_dir = os.path.join(os.path.abspath("."), "Data/")
 
-    num_records = 'all'
+    num_records = 1000
     data_dir = os.path.join(os.path.abspath("."), "Data/")
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
@@ -278,7 +278,7 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    testTrainSplit(firstflight)
+    testTrainSplit(n, firstflight, 0.7)
 
 
 if __name__ == '__main__':
