@@ -1,0 +1,1 @@
+Mean Absolute Error of Calculating TotalBKD for a particular Booking Class: 9.24399078612
