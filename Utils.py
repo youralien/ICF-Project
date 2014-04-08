@@ -10,21 +10,47 @@ class Utils():
 	"""
 	Utility functions used by FeatureFilter, Network, and Visualizer
 	"""
+	days_of_week = ["Sunday","Monday","Tuesday","Wednesday",
+					"Thursday","Friday","Saturday"]
+					
+	bc_economy_hierarchy = [(1,Y,Y), 
+							(2,H,Y), 
+							(3,M,Y),
+							(4,L,Y),
+							(5,B,Y),
+							(6,K,Y),
+							(7,X,Y),
+							(8,Q,Y),
+							(9,V,Y),
+							(10,E,Y),
+							(11,S,Y),
+							(12,N,Y),
+							(13,O,Y),
+							(14,T,Y),
+							(15,U,Y),
+							(16,Z,Y),
+							(17,G,Y),
+							(18,W,Y),
+							(1,J,J),
+							(2,C,J),
+							(3,D,J),
+							(4,I,J),
+							(5,P,J),
+							(6,R,J)]
 
 	@staticmethod
-	def mapBookingClassToCabinHierarchy(bc):
+	def mapBookingClassToCabinHierarchy(booking_class):
 		"""
+		ONLY FOR ECONOMY CLASSES
 		args:
-			bc: string of the booking class that is being looked up
+			booking_class: string of the booking class that is being looked up
 
 		returns:
 			tuple of (cabin letter, rank in the booking class hierarchy)
 		"""
-		with open('Data/BC_Hierarchy.csv', 'r') as bc_file:
-			reader = csv.reader(bc_file)
-			for rank, booking_class, cabin in reader:
-				if bc == booking_class:
-					return cabin, rank
+		for r, bc, c in Utils.bc_economy_hierarchy:
+			if booking_class == bc:
+				return c, r
 
 		raise Exception('Booking Class not found')
 
@@ -43,6 +69,20 @@ class Utils():
 		with open('Data/BC_Hierarchy.csv', 'r') as bc_file:
 			reader = csv.reader(bc_file)
 			return [(bc, r) for r, bc, c in reader if c == cabin]
+
+	@staticmethod
+	def mapRankToBookingClass(rank):
+		"""
+		ONLY FOR ECONOMY CLASSES
+		args:
+			rank: integer of rank of booking class that is being looked up
+
+		returns:
+			tuple of (cabin, booking class) associated with the given rank
+		"""
+		for r, bc, c in Utils.bc_economy_hierarchy:
+			if rank == r:
+				return (c, bc)
 
 	@staticmethod
 	def date2DayOfWeek(date):
