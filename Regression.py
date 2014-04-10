@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import accuracy_score
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
@@ -17,16 +16,16 @@ def testTrainSplit(n, df, p):
     y_train, y_test = None, None
 
     for flt, flt_df in unique_flights:
-        X_cat = encodeCategoricalData(flt, flt_df)
-        X_flt, y = encodeFlight(flt, flt_df)
-        X = np.hstack(X_cat, X_flt)
+        X, y = encodeFlight(flt, flt_df)
 
-        if np.random.uniform(0, 1) <= p:
-            stackMatrices(X_train, X)
-            stackMatrices(y_train, y)
+        if np.random.uniform(0, 1) <= 0.7:
+            print 'train'
+            X_train = vStackMatrices(X_train, X)
+            y_train = hStackMatrices(y_train, y)
         else:
-            stackMatrices(X_test, X)
-            stackMatrices(y_test, y)
+            print 'test'
+            X_test = vStackMatrices(X_test, X)
+            y_test = hStackMatrices(y_test, y)
 
     return ((X_test, y_test), (X_train, y_train))
 
@@ -46,34 +45,40 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        features = (bkd[1:], avail[1:], auth[1:], keyday[1:], delta_t)
-        features = np.column_stack(features)
-        
-        X = stackMatrices(X, features)
-        y = stackMatrices(y, delta_bkd)
+        nums = (bkd[1:], avail[1:], auth[1:], keyday[1:], delta_t)
+        nums = np.column_stack(nums)
+        cats = encodeCategoricalData(flt, bc)
+        cats = np.tile(cats, (len(nums), 1)) 
+
+        features = hStackMatrices(cats, nums)
+
+        X = vStackMatrices(X, features)
+
+        y = hStackMatrices(y, delta_bkd)
 
     return X, y    
 
-def encodeCategoricalData(flt, df):
+def encodeCategoricalData(flt, bc):
     date, flt_num, org, des = flt
     enc_date = encodeDate(date)
-    X = None
 
-    for bc, bc_df in df.groupby('BC'):
-        m, n = bc_df.shape
-        enc_bc = encodeBookingClass(bc)
-        features = (enc_date, enc_bc)
-        features = np.hstack(features)
-        features = np.tile(features, (n, 1))
-        stackMatrices(X, features)
+    enc_bc = encodeBookingClass(bc)
+    features = (enc_date, enc_bc)
+    features = np.hstack(features)
 
-    return X
+    return features
 
-def stackMatrices(x, new_x):
+def vStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.vstack)
+
+def hStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.hstack)
+
+def stackMatrices(x, new_x, fun):
     if x is None:
         x = new_x
-    else:
-        x = np.vstack((x, new_x))
+    else: 
+        x = fun((x, new_x))
 
     return x
 
@@ -98,50 +103,6 @@ def encodeBookingClass(bc):
     encoded_vector = [0] * len(Utils.bc_economy_hierarchy)
     encoded_vector[rank] = 1
     return encoded_vector
-
-# for flt, flt_df in n.f.getUniqueFlights(firstflight):
-    
-#     adding_to_training = np.random.uniform(0, 1)  # Will this unique flight be added to Training or Test Set?
-#     date, flt_num, org, des = flt
-#     day_of_week = Utils.date2DayOfWeek(date)
-#     enc_day_of_week = encodeDayOfWeek(day_of_week)
-    
-#     for bc, bc_df in flt_df.groupby('BC'):
-        
-#         enc_bc = encodeBookingClass(uniquebc)
-        
-#         keyday = np.array( -bc_df['KEYDAY']  )
-
-#         bkd = np.array( bc_df['BKD'] )
-#         auth = np.array( bc_df['AUTH'] )
-#         avail = np.array( bc_df['AVAIL'] )
-        
-#         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-        
-#         deltaBKD = np.diff(bkd)
-#         deltaT = np.diff(keyday)
-        
-#         X_continuous = np.column_stack((bkd[1:],avail[1:],auth[1:],keyday[1:],deltaT))
-#         m_rows, n_cols = X_continuous.shape
-        
-#         # Create a encoded categorical description for all the interpolated keydays in this fltbc
-#         flattened_categorical_features = []
-#         for i in range(m_rows):
-#             categorical_features_for_row = np.array(enc_day_of_week + enc_bc) 
-#             flattened_categorical_features.append(categorical_features_for_row)
-#         categorical_features_matrix = np.vstack(flattened_categorical_features)
-        
-#         X = np.hstack((categorical_features_matrix, X_continuous))
-#         y = deltaBKD
-        
-#         if adding_to_training:
-#             X_train = np.vstack([X_train, X]) if X_train is not None else X
-#             y_train = np.concatenate([y_train, y]) if y_train is not None else y
-#         else:
-#             X_test = np.vstack([X_test, X]) if X_test is not None else X
-#             y_test = np.concatenate([y_test, y]) if y_test is not None else y
-#         os.sys.stdout.write('.')
-#     os.sys.stdout.write('|')
 
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)
@@ -269,7 +230,7 @@ def meanPercentError(actual, predicted):
 def main():
     data_dir = os.path.join(os.path.abspath("."), "Data/")
 
-    num_records = 1000
+    num_records = 1000000
     data_dir = os.path.join(os.path.abspath("."), "Data/")
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
@@ -278,8 +239,10 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    testTrainSplit(n, firstflight, 0.7)
+    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 0.7)
 
+    print X_train.shape, y_train.shape
+    print X_test.shape, y_test.shape
 
 if __name__ == '__main__':
     main()
