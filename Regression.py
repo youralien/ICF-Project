@@ -18,7 +18,7 @@ def testTrainSplit(n, df, p):
     for flt, flt_df in unique_flights:
         X, y = encodeFlight(flt, flt_df)
 
-        if np.random.uniform(0, 1) <= 0.7:
+        if np.random.uniform(0, 1) <= p:
             print 'train'
             X_train = vStackMatrices(X_train, X)
             y_train = hStackMatrices(y_train, y)
@@ -230,7 +230,7 @@ def meanPercentError(actual, predicted):
 def main():
     data_dir = os.path.join(os.path.abspath("."), "Data/")
 
-    num_records = 1000000
+    num_records = 10000
     data_dir = os.path.join(os.path.abspath("."), "Data/")
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
@@ -239,10 +239,19 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 0.7)
+    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 1.0)
 
-    print X_train.shape, y_train.shape
-    print X_test.shape, y_test.shape
 
 if __name__ == '__main__':
-    main()
+    data_dir = os.path.join(os.path.abspath("."), "Data/")
+
+    num_records = 'all'
+    data_dir = os.path.join(os.path.abspath("."), "Data/")
+    normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
+    unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
+    filename = data_dir + unnormalized
+    n = Network(num_records, filename)
+    v = Visualizer()
+
+    firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
+    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 1.0)
