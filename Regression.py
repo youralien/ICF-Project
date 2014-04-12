@@ -14,22 +14,26 @@ def testTrainSplit(n, df, p):
     unique_flights = n.f.getUniqueFlights(df)
     X_train, X_test = None, None
     y_train, y_test = None, None
+    identifiers_train, identifiers_test = None, None
 
     for flt, flt_df in unique_flights:
-        X, y = encodeFlight(flt, flt_df)
+        X, y, identifiers = encodeFlight(flt, flt_df)
 
         if np.random.uniform(0, 1) <= p:
             X_train = vStackMatrices(X_train, X)
             y_train = hStackMatrices(y_train, y)
+            identifiers_train = vStackMatrices(identifiers_train, identifiers)
         else:
             X_test = vStackMatrices(X_test, X)
             y_test = hStackMatrices(y_test, y)
+            identifiers_test = vStackMatrices(identifiers_test, identifiers)
 
-    return ((X_train, y_train), (X_test, y_test))
+    return ((X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test))
 
 def encodeFlight(flt, df):
     X = None
     y = None
+    identifiers = None
 
     for bc, bc_df in df.groupby('BC'):
         enc_bc = encodeBookingClass(bc)
@@ -56,7 +60,9 @@ def encodeFlight(flt, df):
 
         y = hStackMatrices(y, delta_bkd)
 
-    return X, y    
+        identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
+
+    return X, y, identifiers 
 
 def filterDataForKeyDay(time, keydays, *args):
     index = [i for i, k in enumerate(keydays) if k > time][0]
@@ -77,6 +83,9 @@ def vStackMatrices(x, new_x):
 
 def hStackMatrices(x, new_x):
     return stackMatrices(x, new_x, np.hstack)
+
+def colStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.column_stack)
 
 def stackMatrices(x, new_x, fun):
     if x is None:
@@ -126,17 +135,19 @@ def ensure_dir(f):
     if not os.path.exists(d):
         os.makedirs(d)
 
-def cmp_deltaBKD_curve(result_dir, X_test, y_test, y_predict):
+def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     KEYDAY_INDEX = -2 # keyday is located on the 2nd the last column of X
     index = 0
     current_snapshot = 0
     while(True):
+        # Initialize variables
         current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
         keyday_vector = []
         y_test_vector = []
         y_predict_vector = []
+        
         try:
             while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
                 keyday_vector.append(current_keyday)
@@ -144,23 +155,21 @@ def cmp_deltaBKD_curve(result_dir, X_test, y_test, y_predict):
                 y_predict_vector.append(y_predict[current_snapshot])
                 current_snapshot += 1
                 current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
-        except IndexError: # Reached a snapshot that is one beyond total number of snapshots
+        except IndexError: # Reached ending row of X_test
             print "Plotting Complete"
             break
+        # Create Figure and Save
         plt.clf()
         plt.hold(True)
         plt.plot(keyday_vector, y_test_vector)
         plt.plot(keyday_vector, y_predict_vector, '.-')
+        plt.title(identifiers_test[index,:]) # Identifier could be (date, flt, org, des, bc) for one row
         plt.legend(['test','predict'],loc=3)
         plt.xlabel('-KEYDAY from Departure')
         plt.ylabel('delta BKD')
         plt.savefig(result_dir + str(index))
         index += 1
         current_snapshot += 1
-
-# model = RandomForestRegressor()
-# model.fit(X_train, y_train)
-# y_predict = model.predict(X_test)
 
 # print "\nMeanAbsoluteError: " + str(meanAbsoluteError(y_test,y_predict))
 
@@ -251,15 +260,16 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 0.66)
+    (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = testTrainSplit(n, firstflight, 0.66)
 
-    print X_train.shape, y_train.shape, X_test.shape, y_test.shape
+    # print X_train.shape, y_train.shape, identifiers_train.shape, X_test.shape, y_test.shape, identifiers_test.shape
+    # print identifiers_test
     model = RandomForestRegressor()
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
     result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
-    cmp_deltaBKD_curve(result_dir, X_test, y_test, y_pred)
+    cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
 
 if __name__ == '__main__':
     main()
