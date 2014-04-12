@@ -124,11 +124,29 @@ def meanAbsoluteError(ground_truth, predictions):
     return np.sum(diff)/np.size(diff)
 
 # WHAT ARE WE DOING HERE AHHHHHHHHHHHHHHHHH
-def meanPercentError(actual, predicted):
-    actual = 1.0 * np.array(actual)
-    predicted = 1.0 * np.array(predicted)
-    percent = (actual - predicted) / actual
-    return np.sum(percent) / np.size(diff)
+# We are caluating percent error element wise (which corresponds to percent error for each snapshot in the dataset)
+# Then we return the mean Percent error
+# SO MANY FUCKING NAN'S AND INF'S (DIVISION BY ZERO)
+def MAPE(actual, predicted):
+    actual, predicted = np.array(actual), np.array(predicted)
+    percent = np.zeros(len(actual))
+    for i in xrange(len(actual)):
+        if float(actual[i]) == 0.0:
+            percent[i] = np.abs((actual[i] - predicted[i]) / 1) # Funky Fix by dividing by 1?
+        else:
+            percent[i] = np.abs((actual[i] - predicted[i]) / actual[i])
+    return np.around(100.0 * np.mean(percent), decimals=1)
+
+# MAPE_alt (as found from Wikipedia) still throws NaN's
+def MAPE_alt(actual, predicted):
+    """ The difference with the original formula is that 
+    each Actual Value (At) of the series is replaced by 
+    the average Actual Value (At_bar) of that series. Hence, 
+    the distortions are smoothed out."""
+    actual, predicted = np.array(actual), np.array(predicted)
+    average_actual = np.array([np.mean(actual) for i in xrange(len(actual))])
+    percent = np.abs((average_actual - predicted) / average_actual)
+    return np.around(100.0 * np.mean(percent), decimals=1)
 
 def ensure_dir(f):
     """ Ensures the directory exists within the filesystem.
@@ -160,6 +178,7 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
         y_test_vector = []
         y_predict_vector = []
         
+        # Build up keyday, y_test, y_predict vectors
         try:
             while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
                 keyday_vector.append(current_keyday)
@@ -170,16 +189,24 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
         except IndexError: # Reached ending row of X_test
             print "Plotting Complete"
             break
+
+        mean_percent_error = MAPE_alt(y_test_vector, y_predict_vector)
+        print mean_percent_error
         # Create Figure and Save
-        plt.clf()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
         plt.hold(True)
-        plt.plot(keyday_vector, y_test_vector)
-        plt.plot(keyday_vector, y_predict_vector, '.-')
-        plt.title(identifiers_test[index,:]) # Identifier could be (date, flt, org, des, bc) for one row
-        plt.legend(['test','predict'],loc=3)
-        plt.xlabel('-KEYDAY from Departure')
-        plt.ylabel('delta BKD')
+        ax.plot(keyday_vector, y_test_vector,'b')
+        ax.plot(keyday_vector, y_predict_vector, 'r')
+        ax.set_title(identifiers_test[index,:]) # Identifier could be (date, flt, org, des, bc) for one row
+        ax.legend(['test','predict'],loc=3)
+        ax.set_xlabel('-KEYDAY from Departure')
+        ax.set_ylabel('delta BKD')
+        ax.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
+            verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, color='green', fontsize=13)
         plt.savefig(result_dir + str(index))
+        plt.close(fig)
+
         index += 1
         current_snapshot += 1
 
