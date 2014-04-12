@@ -111,7 +111,7 @@ def encodeDate(date):
     return vector
 
 def encodeBookingClass(bc):
-    """ Returns a 1-to-K encoding of BC."""
+    """ Returns a 1-to-K or one-hot encoding of BC."""
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
     encoded_vector = [0] * len(Utils.bc_economy_hierarchy)
     encoded_vector[rank] = 1
@@ -131,14 +131,26 @@ def meanPercentError(actual, predicted):
     return np.sum(percent) / np.size(diff)
 
 def ensure_dir(f):
+    """ Ensures the directory exists within the filesystem.
+    If it does not currently exists, the directory is made """
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
 
 def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
+    """ Compares y_test and y_predict by visualizing how close the regression was
+    to predicting the deltaBKD curve for a particular identification. 
+    This identification could be date, flt, org, des, bc.  Saves the plot to a 
+    specified result directory. Note that the result directory is created 
+    automatically if it does not already exist in the file system. """
+
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     KEYDAY_INDEX = -2 # keyday is located on the 2nd the last column of X
+    if not X_test[0, KEYDAY_INDEX] < 0:
+        print "Keyday feature is not properly setup. Check if Keydays start negative and approach 0 near departure"
+        return
+
     index = 0
     current_snapshot = 0
     while(True):
@@ -170,6 +182,31 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
         plt.savefig(result_dir + str(index))
         index += 1
         current_snapshot += 1
+
+def main():
+    wd = os.path.abspath(".")
+    data_dir = os.path.join(wd, "Data/")
+
+    num_records = 50000
+    data_dir = os.path.join(wd, "Data/")
+    normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
+    unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
+    filename = data_dir + unnormalized
+    n = Network(num_records, filename)
+    v = Visualizer()
+
+    firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
+    (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = testTrainSplit(n, firstflight, 0.66)
+
+    model = RandomForestRegressor()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
+    cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
+
+if __name__ == '__main__':
+    main()
 
 # print "\nMeanAbsoluteError: " + str(meanAbsoluteError(y_test,y_predict))
 
@@ -245,31 +282,3 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
 
 # plt.plot(keyday_interp, bkd_interp, '.')
 # plt.show()
-
-
-def main():
-    wd = os.path.abspath(".")
-    data_dir = os.path.join(wd, "Data/")
-
-    num_records = 50000
-    data_dir = os.path.join(wd, "Data/")
-    normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
-    unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
-    filename = data_dir + unnormalized
-    n = Network(num_records, filename)
-    v = Visualizer()
-
-    firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = testTrainSplit(n, firstflight, 0.66)
-
-    # print X_train.shape, y_train.shape, identifiers_train.shape, X_test.shape, y_test.shape, identifiers_test.shape
-    # print identifiers_test
-    model = RandomForestRegressor()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
-    cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
-
-if __name__ == '__main__':
-    main()
