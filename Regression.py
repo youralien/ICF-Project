@@ -43,8 +43,8 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        keyday, bkd, avail, auth, delta_t = filterDataForKeyDay(-300, keyday[1:], bkd[1:], avail[1:], auth[1:], delta_t)
-        
+        keyday, bkd, avail, auth, delta_t, delta_bkd = filterDataForKeyDay(-90, keyday[1:], bkd[1:], avail[1:], auth[1:], delta_t, delta_bkd)
+
         nums = (bkd, avail, auth, keyday, delta_t)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
