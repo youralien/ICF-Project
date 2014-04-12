@@ -19,15 +19,13 @@ def testTrainSplit(n, df, p):
         X, y = encodeFlight(flt, flt_df)
 
         if np.random.uniform(0, 1) <= p:
-            print 'train'
             X_train = vStackMatrices(X_train, X)
             y_train = hStackMatrices(y_train, y)
         else:
-            print 'test'
             X_test = vStackMatrices(X_test, X)
             y_test = hStackMatrices(y_test, y)
 
-    return ((X_test, y_test), (X_train, y_train))
+    return ((X_train, y_train), (X_test, y_test))
 
 def encodeFlight(flt, df):
     X = None
@@ -45,7 +43,9 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        nums = (bkd[1:], avail[1:], auth[1:], keyday[1:], delta_t)
+        keyday, bkd, avail, auth, delta_t = filterDataForKeyDay(-300, keyday[1:], bkd[1:], avail[1:], auth[1:], delta_t)
+        
+        nums = (bkd, avail, auth, keyday, delta_t)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -57,6 +57,10 @@ def encodeFlight(flt, df):
         y = hStackMatrices(y, delta_bkd)
 
     return X, y    
+
+def filterDataForKeyDay(time, keydays, *args):
+    index = [i for i, k in enumerate(keydays) if k > time][0]
+    return [keydays[index:]] + [arg[index:] for arg in args]
 
 def encodeCategoricalData(flt, bc):
     date, flt_num, org, des = flt
@@ -117,6 +121,42 @@ def meanPercentError(actual, predicted):
     percent = (actual - predicted) / actual
     return np.sum(percent) / np.size(diff)
 
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+def cmp_deltaBKD_curve(result_dir, X_test, y_test, y_predict):
+    ensure_dir(result_dir) # ensure directory for figures to be saved in
+
+    KEYDAY_INDEX = -2 # keyday is located on the 2nd the last column of X
+    index = 0
+    current_snapshot = 0
+    while(True):
+        current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
+        keyday_vector = []
+        y_test_vector = []
+        y_predict_vector = []
+        try:
+            while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
+                keyday_vector.append(current_keyday)
+                y_test_vector.append(y_test[current_snapshot])
+                y_predict_vector.append(y_predict[current_snapshot])
+                current_snapshot += 1
+                current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
+        except IndexError: # Reached a snapshot that is one beyond total number of snapshots
+            print "Plotting Complete"
+            break
+        plt.clf()
+        plt.hold(True)
+        plt.plot(keyday_vector, y_test_vector)
+        plt.plot(keyday_vector, y_predict_vector, '.-')
+        plt.legend(['test','predict'],loc=3)
+        plt.xlabel('-KEYDAY from Departure')
+        plt.ylabel('delta BKD')
+        plt.savefig(result_dir + str(index))
+        index += 1
+        current_snapshot += 1
 
 # model = RandomForestRegressor()
 # model.fit(X_train, y_train)
@@ -136,37 +176,8 @@ def meanPercentError(actual, predicted):
 
 # result_dir = os.path.join(os.path.abspath("."),"Results/deltaBKD-over-deltaT/RandomForestRegressor/DMMDXB/")
 
-# KEYDAY_INDEX = -2
 
-# index = 0
-# current_snapshot = 0
-# while(True):
-#     current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
-#     keyday_vector = []
-#     y_test_vector = []
-#     y_predict_vector = []
-#     try:
-#         while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
-#             keyday_vector.append(current_keyday) # Build up KEYDAY_VECTOR
-#             y_test_vector.append(y_test[current_snapshot])
-#             y_predict_vector.append(y_predict[current_snapshot])
-#             current_snapshot += 1
-#             current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
-#     except IndexError:
-#         print "Plotting Complete"
-#         break
-#     plt.clf()
-#     plt.hold(True)
-#     plt.plot(keyday_vector, y_test_vector)
-#     plt.plot(keyday_vector, y_predict_vector)
-#     plt.legend(['test','predict'],loc=3)
-#     plt.xlabel('-KEYDAY from Departure')
-#     plt.ylabel('delta BKD')
-#     plt.savefig(result_dir + str(index))
-#     index += 1
-#     current_snapshot += 1
 
-# # <codecell>
 
 # KEYDAY_INDEX = -2
 # BKD_INDEX = -5
@@ -228,10 +239,11 @@ def meanPercentError(actual, predicted):
 
 
 def main():
-    data_dir = os.path.join(os.path.abspath("."), "Data/")
+    wd = os.path.abspath(".")
+    data_dir = os.path.join(wd, "Data/")
 
-    num_records = 10000
-    data_dir = os.path.join(os.path.abspath("."), "Data/")
+    num_records = 50000
+    data_dir = os.path.join(wd, "Data/")
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
     filename = data_dir + unnormalized
@@ -239,19 +251,15 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 1.0)
+    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 0.66)
 
+    print X_train.shape, y_train.shape, X_test.shape, y_test.shape
+    model = RandomForestRegressor()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
+    cmp_deltaBKD_curve(result_dir, X_test, y_test, y_pred)
 
 if __name__ == '__main__':
-    data_dir = os.path.join(os.path.abspath("."), "Data/")
-
-    num_records = 'all'
-    data_dir = os.path.join(os.path.abspath("."), "Data/")
-    normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
-    unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
-    filename = data_dir + unnormalized
-    n = Network(num_records, filename)
-    v = Visualizer()
-
-    firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    ((X_train, y_train), (X_test, y_test)) = testTrainSplit(n, firstflight, 1.0)
+    main()
