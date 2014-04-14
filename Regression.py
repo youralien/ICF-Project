@@ -4,31 +4,31 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.cross_validation import train_test_split
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from Visualizer import Visualizer
 from Network import Network
 
-def testTrainSplit(n, df, p):
-    unique_flights = n.f.getUniqueFlights(df)
-    X_train, X_test = None, None
-    y_train, y_test = None, None
-    identifiers_train, identifiers_test = None, None
+def KFoldCV(X, y, identifiers, n_folds):
+    kf = KFold(len(X), n_folds, indices=True)
 
-    for flt, flt_df in unique_flights:
-        X, y, identifiers = encodeFlight(flt, flt_df)
+    for train, test in kf:
+        X_train, y_train, X_test, y_test = None, None, None, None
+        for each_x, each_y in zip(X[train], y[train]):
+            X_train = vStackMatrices(X_train, each_x)
+            y_train = hStackMatrices(y_train, each_y)
 
-        if np.random.uniform(0, 1) <= p:
-            X_train = vStackMatrices(X_train, X)
-            y_train = hStackMatrices(y_train, y)
-            identifiers_train = vStackMatrices(identifiers_train, identifiers)
-        else:
-            X_test = vStackMatrices(X_test, X)
-            y_test = hStackMatrices(y_test, y)
-            identifiers_test = vStackMatrices(identifiers_test, identifiers)
+        for each_x, each_y in zip(X[test], y[test]):
+            X_test = vStackMatrices(X_test, each_x)
+            y_test = hStackMatrices(y_test, each_y)
 
-    return ((X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test))
+def flightSplit(unique_flights):
+    flights = [encodeFlight(flt, flt_df) for flt, flt_df in unique_flights]
+    X, y, identifiers = zip(*flights)
+
+    return np.array(X), np.array(y), np.array(identifiers)
 
 def encodeFlight(flt, df):
     X = None
@@ -223,14 +223,18 @@ def main():
     v = Visualizer()
 
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
-    (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = testTrainSplit(n, firstflight, 0.66)
+    unique_flights = n.f.getUniqueFlights(firstflight)
+    X, y, identifiers = flightSplit(unique_flights)
+    KFoldCV(X, y, identifiers, 3)
+        
+    # (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = flightSplit(n, firstflight, 0.66)
 
-    model = RandomForestRegressor()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+    # model = RandomForestRegressor()
+    # model.fit(X_train, y_train)
+    # y_pred = model.predict(X_test)
 
-    result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
-    cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
+    # result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
+    # cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
 
 if __name__ == '__main__':
     main()
