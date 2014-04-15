@@ -10,24 +10,27 @@ from FeatureFilter import FeatureFilter
 from Utils import Utils
 from Visualizer import Visualizer
 from Network import Network
+from AirportCodes import AirportCodes
 
-def aggregateTrainTestSplit(X, y, p):
-    train_X, test_X, train_y, test_y = train_test_split(X, y, train_size=p)
-    X_train, X_test, y_train, y_test = None, None, None, None
+def aggregateTrainTestSplit(X, y, ids, p):
+    train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
+    X_train, X_test, y_train, y_test, ids_train, ids_test = (None,) * 6
 
-    for each_x, each_y in zip(train_X, train_y):
+    for each_x, each_y, each_id in zip(train_X, train_y, train_ids):
         X_train = vStackMatrices(X_train, each_x)
         y_train = hStackMatrices(y_train, each_y)
+        ids_train = vStackMatrices(ids_train, each_id)
 
-    for each_x, each_y in zip(test_X, test_y):
+    for each_x, each_y, each_id in zip(test_X, test_y, test_ids):
         X_test = vStackMatrices(X_test, each_x)
         y_test = hStackMatrices(y_test, each_y)
+        ids_test = vStackMatrices(ids_test, each_id)
 
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_test, y_test, ids_train, ids_test
 
 
-def flightSplit(unique_flights):
-    flights = [encodeFlight(flt, flt_df) for flt, flt_df in unique_flights]
+def flightSplit(unique_flights, encoder):
+    flights = [encoder(flt, flt_df) for flt, flt_df in unique_flights]
     X, y, identifiers = zip(*flights)
 
     return np.array(X), np.array(y), np.array(identifiers)
@@ -46,10 +49,12 @@ def encodeFlight(flt, df):
 
         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
 
+
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        keyday, bkd, avail, auth, delta_t, delta_bkd = filterDataForKeyDay(-90, keyday[1:], bkd[1:], avail[1:], auth[1:], delta_t, delta_bkd)
+        keyday, bkd, avail, auth, delta_t, delta_bkd = filterDataForKeyDay(
+            -90, keyday[:-1], bkd[:-1], avail[:-1], auth[:-1], delta_t, delta_bkd)
 
         nums = (bkd, avail, auth, keyday, delta_t)
         nums = np.column_stack(nums)
@@ -65,6 +70,48 @@ def encodeFlight(flt, df):
         identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
 
     return X, y, identifiers 
+
+def encodeInterpolatedFlight(flt, df):
+    X = None
+    y = None
+    identifiers = None
+
+    for bc, bc_df in df.groupby('BC'):
+        enc_bc = encodeBookingClass(bc)
+        keyday = -1 * bc_df['KEYDAY']
+        bkd = bc_df['BKD']
+        auth = bc_df['AUTH']
+        avail = bc_df['AVAIL']
+
+        keyday, bkd, avail = Utils.sortByIndex(keyday, bkd, avail)
+        keyday, bkd, avail = filterDataForKeyDay(-90, keyday, bkd, avail)
+
+        keyday_interp = np.arange(-90, 1, 3)
+        bkd_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, avail)
+
+        delta_bkd = np.diff(bkd_interp)
+
+        nums = (bkd_interp[:-1], avail_interp[:-1], keyday_interp[:-1])
+        nums = np.column_stack(nums)
+        cats = encodeCategoricalData(flt, bc)
+        cats = np.tile(cats, (len(nums), 1)) 
+
+        features = hStackMatrices(cats, nums)
+
+        X = vStackMatrices(X, features)
+
+        y = hStackMatrices(y, delta_bkd)
+
+        identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
+
+    return X, y, identifiers 
+
+def interpolate(keyday_vals, keyday, *args):
+    interps = []
+    for arg in args:
+        interp = np.interp(keyday_vals, keyday, arg, left=0)
+        interps.append(interp)
+    return interps
 
 def filterDataForKeyDay(time, keydays, *args):
     index = [i for i, k in enumerate(keydays) if k > time][0]
@@ -115,7 +162,7 @@ def encodeDate(date):
 def encodeBookingClass(bc):
     """ Returns a 1-to-K or one-hot encoding of BC."""
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
-    encoded_vector = [0] * len(Utils.bc_economy_hierarchy)
+    encoded_vector = [0] * len(Utils.bc_hierarchy)
     encoded_vector[rank] = 1
     return encoded_vector
 
@@ -164,8 +211,6 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
     specified result directory. Note that the result directory is created 
     automatically if it does not already exist in the file system. """
 
-    ensure_dir(result_dir) # ensure directory for figures to be saved in
-
     KEYDAY_INDEX = -2 # keyday is located on the 2nd the last column of X
     if not X_test[0, KEYDAY_INDEX] < 0:
         print "Keyday feature is not properly setup. Check if Keydays start negative and approach 0 near departure"
@@ -192,8 +237,7 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
             print "Plotting Complete"
             break
 
-        mean_percent_error = MAPE_alt(y_test_vector, y_predict_vector)
-        print mean_percent_error
+        mean_percent_error = MAPE(y_test_vector, y_predict_vector)
         # Create Figure and Save
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -212,33 +256,53 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
         index += 1
         current_snapshot += 1
 
-def main():
-    wd = os.path.abspath(".")
-    data_dir = os.path.join(wd, "Data/")
+def defineWorkingDirectory():
+    return os.path.abspath(".")
 
-    num_records = 50000
-    data_dir = os.path.join(wd, "Data/")
+def defineDataDirectory(working_dir):
+    return os.path.join(working_dir, "Data/")
+
+def defineResultDirectory(working_dir, market, interpolate):
+    interpolated = "Interpolated" if interpolate else ''
+    return os.path.join(working_dir, "Results/Market/{0}{1}/".format(market, interpolated))
+
+def RegressOnMarket(market, encoder):
+    """ market is in the form of an airport code i.e. "LHR" 
+    See AirportCodes.py for encapsulation of the strings """
+
+    working_dir = defineWorkingDirectory()
+    data_dir = defineDataDirectory(working_dir)
+    result_dir = defineResultDirectory(working_dir, market, True)
+    ensure_dir(result_dir) # ensure directory for figures to be saved in
+
+    print "Loading from CSV"
+    num_records = 'all'
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
     filename = data_dir + unnormalized
     n = Network(num_records, filename)
     v = Visualizer()
 
-    firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
+    print "Drill Down, Train/Test/Split"
+    firstflight = n.f.getDrillDown(orgs=['DXB', market], dests=['DXB', market], cabins=["Y"])
     unique_flights = n.f.getUniqueFlights(firstflight)
-    X, y, identifiers = flightSplit(unique_flights)
-    X_train, y_train, X_test, y_test = aggregateTrainTestSplit(X, y, 0.85)
-    model = GridSearchCV(RandomForestRegressor(), tuned_parameters, cv=5)
-    model = 
-        
-    # (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = flightSplit(n, firstflight, 0.66)
+    X, y, ids = flightSplit(unique_flights, encoder)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.66)
+    
+    print "Training the Model"
+    model = RandomForestRegressor()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
 
-    # model = RandomForestRegressor()
-    # model.fit(X_train, y_train)
-    # y_pred = model.predict(X_test)
+    print "Saving figures"
+    cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
 
-    # result_dir = os.path.join(wd, "Results/Market/DXBDMM/")
-    # cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir)
+def main():
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
+    # RegressOnMarket(AirportCodes.Bangkok)
+    # RegressOnMarket(AirportCodes.Delhi)
+    # RegressOnMarket(AirportCodes.Bahrain)
+    # RegressOnMarket(AirportCodes.Frankfurt)
 
 if __name__ == '__main__':
     main()
