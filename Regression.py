@@ -53,10 +53,10 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        keyday, bkd, avail, auth, delta_t, delta_bkd = filterDataForKeyDay(
-            -90, keyday[:-1], bkd[:-1], avail[:-1], auth[:-1], delta_t, delta_bkd)
+        keyday, bkd, avail, delta_t, delta_bkd = filterDataForKeyDay(
+            -90, keyday[:-1], bkd[:-1], avail[:-1], delta_t, delta_bkd)
 
-        nums = (bkd, avail, auth, keyday, delta_t)
+        nums = (bkd, avail, delta_t, keyday)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -175,7 +175,7 @@ def meanAbsoluteError(ground_truth, predictions):
 # WHAT ARE WE DOING HERE AHHHHHHHHHHHHHHHHH
 # We are caluating percent error element wise (which corresponds to percent error for each snapshot in the dataset)
 # Then we return the mean Percent error
-# SO MANY FUCKING NAN'S AND INF'S (DIVISION BY ZERO)
+# SO MANY NAN'S AND INF'S (DIVISION BY ZERO)
 def MAPE(actual, predicted):
     actual, predicted = np.array(actual), np.array(predicted)
     percent = np.zeros(len(actual))
@@ -211,7 +211,7 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
     specified result directory. Note that the result directory is created 
     automatically if it does not already exist in the file system. """
 
-    KEYDAY_INDEX = -2 # keyday is located on the 2nd the last column of X
+    KEYDAY_INDEX = -1 # keyday is always last column of X feature set
     if not X_test[0, KEYDAY_INDEX] < 0:
         print "Keyday feature is not properly setup. Check if Keydays start negative and approach 0 near departure"
         return
@@ -283,9 +283,11 @@ def RegressOnMarket(market, encoder):
     n = Network(num_records, filename)
     v = Visualizer()
 
-    print "Drill Down, Train/Test/Split"
+    print "Filtering for specified Market"
     firstflight = n.f.getDrillDown(orgs=['DXB', market], dests=['DXB', market], cabins=["Y"])
     unique_flights = n.f.getUniqueFlights(firstflight)
+
+    print "Formatting Features and Targets into train and test sets"
     X, y, ids = flightSplit(unique_flights, encoder)
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.66)
     
@@ -298,11 +300,11 @@ def RegressOnMarket(market, encoder):
     cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
 
 def main():
-    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
-    # RegressOnMarket(AirportCodes.Bangkok)
-    # RegressOnMarket(AirportCodes.Delhi)
-    # RegressOnMarket(AirportCodes.Bahrain)
-    # RegressOnMarket(AirportCodes.Frankfurt)
+    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight)
 
 if __name__ == '__main__':
     main()
