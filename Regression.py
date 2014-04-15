@@ -11,18 +11,20 @@ from Utils import Utils
 from Visualizer import Visualizer
 from Network import Network
 
-def KFoldCV(X, y, identifiers, n_folds):
-    kf = KFold(len(X), n_folds, indices=True)
+def aggregateTrainTestSplit(X, y, p):
+    train_X, test_X, train_y, test_y = train_test_split(X, y, train_size=p)
+    X_train, X_test, y_train, y_test = None, None, None, None
 
-    for train, test in kf:
-        X_train, y_train, X_test, y_test = None, None, None, None
-        for each_x, each_y in zip(X[train], y[train]):
-            X_train = vStackMatrices(X_train, each_x)
-            y_train = hStackMatrices(y_train, each_y)
+    for each_x, each_y in zip(train_X, train_y):
+        X_train = vStackMatrices(X_train, each_x)
+        y_train = hStackMatrices(y_train, each_y)
 
-        for each_x, each_y in zip(X[test], y[test]):
-            X_test = vStackMatrices(X_test, each_x)
-            y_test = hStackMatrices(y_test, each_y)
+    for each_x, each_y in zip(test_X, test_y):
+        X_test = vStackMatrices(X_test, each_x)
+        y_test = hStackMatrices(y_test, each_y)
+
+    return X_train, y_train, X_test, y_test
+
 
 def flightSplit(unique_flights):
     flights = [encodeFlight(flt, flt_df) for flt, flt_df in unique_flights]
@@ -225,7 +227,9 @@ def main():
     firstflight = n.f.getDrillDown(orgs=['DMM'],dests=['DXB'],cabins=["Y"])
     unique_flights = n.f.getUniqueFlights(firstflight)
     X, y, identifiers = flightSplit(unique_flights)
-    KFoldCV(X, y, identifiers, 3)
+    X_train, y_train, X_test, y_test = aggregateTrainTestSplit(X, y, 0.85)
+    model = GridSearchCV(RandomForestRegressor(), tuned_parameters, cv=5)
+    model = 
         
     # (X_train, y_train, identifiers_train), (X_test, y_test, identifiers_test) = flightSplit(n, firstflight, 0.66)
 

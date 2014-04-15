@@ -99,8 +99,11 @@ class FeatureFilter():
         m = m & self._mask(false_mask, bcs, df.BC)
         m = m & self._mask(false_mask, date_ranges, df.DATE)
         if cabins is not None:
-            cs = [Utils.mapCabinToBookingClass(cabin)[0] for cabin in cabins]
-            m = m & self._mask(m, cs, df.BC)
+            cs = []
+            for cabin in cabins:
+                classes = Utils.mapCabinToBookingClasses(cabin)
+                cs.extend([bc for bc, rank in classes])
+            m = m & self._mask(false_mask, cs, df.BC)
 
         return df[m]
 
@@ -157,7 +160,15 @@ class FeatureFilter():
 
 
 def main():
-    pass
+    csvfile = 'Data/BKGDAT_Filtered.txt'
+    n = 100000
+    f = FeatureFilter(n, csvfile)
+    df = f.getDrillDown(cabins=['Y'])
+
+    for bc in df['BC']:
+        if bc == 'J' or bc == 'C' or bc == 'D' or bc == 'I' or bc == 'P' or bc == 'R':
+            print "NOOOOOOOOOOOOOOOOOOOOOOOOOOO"
+
 
 if __name__ == '__main__':
     main()
