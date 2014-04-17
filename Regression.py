@@ -56,7 +56,7 @@ def encodeFlight(flt, df):
         keyday, bkd, avail, delta_t, delta_bkd = filterDataForKeyDay(
             -90, keyday[:-1], bkd[:-1], avail[:-1], delta_t, delta_bkd)
 
-        nums = (bkd, avail, delta_t, keyday)
+        nums = (avail, delta_t, bkd, keyday)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -91,7 +91,7 @@ def encodeInterpolatedFlight(flt, df):
 
         delta_bkd = np.diff(bkd_interp)
 
-        nums = (bkd_interp[:-1], avail_interp[:-1], keyday_interp[:-1])
+        nums = (avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -204,16 +204,21 @@ def ensure_dir(f):
     if not os.path.exists(d):
         os.makedirs(d)
 
-def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
-    """ Compares y_test and y_predict by visualizing how close the regression was
+def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
+    """ Compares y_test and y_pred by visualizing how close the regression was
     to predicting the deltaBKD curve for a particular identification. 
     This identification could be date, flt, org, des, bc.  Saves the plot to a 
     specified result directory. Note that the result directory is created 
     automatically if it does not already exist in the file system. """
 
-    KEYDAY_INDEX = -1 # keyday is always last column of X feature set
+    # For column indicies, See encodeFlight and encodeInterpolatedFlight 
+    # in a line that says nums = (..., bkd, keyday)
+    KEYDAY_INDEX = -1 
+    BKD_INDEX = -2
+    
     if not X_test[0, KEYDAY_INDEX] < 0:
-        print "Keyday feature is not properly setup. Check if Keydays start negative and approach 0 near departure"
+        print "Feature accessed is not negative. Assert that keydays \
+            start at a negative value or assert that KEYDAY_INDEX is correct"
         return
 
     index = 0
@@ -221,30 +226,41 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
     while(True):
         # Initialize variables
         current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
+        initial_bkd = X_test[current_snapshot, BKD_INDEX]    
         keyday_vector = []
         y_test_vector = []
-        y_predict_vector = []
-        
-        # Build up keyday, y_test, y_predict vectors
+        y_pred_vector = []
+        totalbkd_test = initial_bkd
+        totalbkd_pred = initial_bkd
+        # Build up keyday, y_test, y_pred vectors, and totalbkd sums
         try:
-            while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
+            # While Keydays are ascending from -90 -> 0 (i.e. Same Flight)
+            while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday: 
                 keyday_vector.append(current_keyday)
                 y_test_vector.append(y_test[current_snapshot])
-                y_predict_vector.append(y_predict[current_snapshot])
+                y_pred_vector.append(y_pred[current_snapshot])
+                totalbkd_test += y_test[current_snapshot]
+                totalbkd_pred += y_pred[current_snapshot]
+                
                 current_snapshot += 1
                 current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
         except IndexError: # Reached ending row of X_test
             print "Plotting Complete"
             break
 
-        mean_percent_error = MAPE(y_test_vector, y_predict_vector)
+        print identifiers_test[index,:]
+
+        mean_percent_error = MAPE(y_test_vector, y_pred_vector)
+        totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
         # Create Figure and Save
         fig = plt.figure()
         ax = fig.add_subplot(111)
         plt.hold(True)
         ax.plot(keyday_vector, y_test_vector,'b')
-        ax.plot(keyday_vector, y_predict_vector, 'r')
-        ax.set_title(identifiers_test[index,:]) # Identifier could be (date, flt, org, des, bc) for one row
+        ax.plot(keyday_vector, y_pred_vector, 'r')
+        ax.set_title(str(identifiers_test[index,:])+ 
+            "\nTOTALBKD: actual, predicted, error | {0}, {1}, {2}%".format(
+                round(totalbkd_test,1),round(totalbkd_pred,1),round(totalbkd_percent_error,1)) )
         ax.legend(['test','predict'],loc=3)
         ax.set_xlabel('-KEYDAY from Departure')
         ax.set_ylabel('delta BKD')
@@ -255,6 +271,7 @@ def cmp_deltaBKD_curve(y_test, y_predict, X_test, identifiers_test, result_dir):
 
         index += 1
         current_snapshot += 1
+        return
 
 def defineWorkingDirectory():
     return os.path.abspath(".")
@@ -272,11 +289,11 @@ def RegressOnMarket(market, encoder):
 
     working_dir = defineWorkingDirectory()
     data_dir = defineDataDirectory(working_dir)
-    result_dir = defineResultDirectory(working_dir, market, True)
+    result_dir = defineResultDirectory(working_dir, market, False)
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     print "Loading from CSV"
-    num_records = 'all'
+    num_records = 100000
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
     filename = data_dir + unnormalized
@@ -300,16 +317,16 @@ def RegressOnMarket(market, encoder):
     cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
 
 def main():
-    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
-    RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight)
-    RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight)
-    RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight)
-    RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
+    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight)
+    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight)
+    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight)
+    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight)
 
 if __name__ == '__main__':
     main()
 
-# print "\nMeanAbsoluteError: " + str(meanAbsoluteError(y_test,y_predict))
+# print "\nMeanAbsoluteError: " + str(meanAbsoluteError(y_test,y_pred))
 
 # # <codecell>
 
@@ -341,7 +358,7 @@ if __name__ == '__main__':
 #     try:
 #         while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
 #             totalbkd_test += y_test[current_snapshot]
-#             totalbkd_predict += y_predict[current_snapshot]
+#             totalbkd_predict += y_pred[current_snapshot]
 #             current_snapshot += 1
 #             current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
 #     except IndexError:
