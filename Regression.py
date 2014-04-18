@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.cross_validation import train_test_split
 
 from FeatureFilter import FeatureFilter
@@ -53,10 +54,10 @@ def encodeFlight(flt, df):
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        keyday, bkd, avail, delta_t, delta_bkd = filterDataForKeyDay(
-            -90, keyday[:-1], bkd[:-1], avail[:-1], delta_t, delta_bkd)
+        keyday, bkd, auth, avail, delta_t, delta_bkd = filterDataForKeyDay(
+            -90, keyday[:-1], bkd[:-1], auth[:-1], avail[:-1], delta_t, delta_bkd)
 
-        nums = (avail, delta_t, bkd, keyday)
+        nums = (auth, avail, delta_t, bkd, keyday)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -83,15 +84,15 @@ def encodeInterpolatedFlight(flt, df):
         auth = bc_df['AUTH']
         avail = bc_df['AVAIL']
 
-        keyday, bkd, avail = Utils.sortByIndex(keyday, bkd, avail)
-        keyday, bkd, avail = filterDataForKeyDay(-90, keyday, bkd, avail)
+        keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
+        keyday, bkd, auth, avail = filterDataForKeyDay(-90, keyday, bkd, auth, avail)
 
         keyday_interp = np.arange(-90, 1, 3)
-        bkd_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, avail)
+        bkd_interp, auth_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, auth, avail)
 
         delta_bkd = np.diff(bkd_interp)
 
-        nums = (avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
+        nums = (auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -271,7 +272,7 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
 
         index += 1
         current_snapshot += 1
-        return
+        
 
 def defineWorkingDirectory():
     return os.path.abspath(".")
@@ -279,21 +280,21 @@ def defineWorkingDirectory():
 def defineDataDirectory(working_dir):
     return os.path.join(working_dir, "Data/")
 
-def defineResultDirectory(working_dir, market, interpolate):
+def defineResultDirectory(working_dir, market, interpolate, regressor):
     interpolated = "Interpolated" if interpolate else ''
-    return os.path.join(working_dir, "Results/Market/{0}{1}/".format(market, interpolated))
+    return os.path.join(working_dir, "Results/Market/{0}{1}{2}/".format(market, interpolated, regressor.__name__))
 
-def RegressOnMarket(market, encoder):
+def RegressOnMarket(market, encoder, regressor):
     """ market is in the form of an airport code i.e. "LHR" 
     See AirportCodes.py for encapsulation of the strings """
 
     working_dir = defineWorkingDirectory()
     data_dir = defineDataDirectory(working_dir)
-    result_dir = defineResultDirectory(working_dir, market, False)
+    result_dir = defineResultDirectory(working_dir, market, False, regressor)
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     print "Loading from CSV"
-    num_records = 100000
+    num_records = 'all'
     normalized = "Normalized_BKGDAT_Filtered_ZeroTOTALBKD.txt"
     unnormalized = "BKGDAT_ZeroTOTALBKD.txt"
     filename = data_dir + unnormalized
@@ -306,22 +307,23 @@ def RegressOnMarket(market, encoder):
 
     print "Formatting Features and Targets into train and test sets"
     X, y, ids = flightSplit(unique_flights, encoder)
-    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.66)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.75)
     
     print "Training the Model"
-    model = RandomForestRegressor()
+    model = regressor()
     model.fit(X_train, y_train)
+    print "\nFeature Importances: [ ..., auth, avail, (deltat), bkd, keyday]", model.feature_importances_
     y_pred = model.predict(X_test)
 
     print "Saving figures"
     cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
 
 def main():
-    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight)
-    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight)
-    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight)
-    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight)
-    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight)
+    RegressOnMarket(AirportCodes.London, encodeFlight, RandomForestRegressor)
+    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor)
+    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor)
+    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor)
+    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor`)
 
 if __name__ == '__main__':
     main()
