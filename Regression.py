@@ -249,8 +249,6 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
             print "Plotting Complete"
             break
 
-        print identifiers_test[index,:]
-
         mean_percent_error = MAPE(y_test_vector, y_pred_vector)
         totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
         # Create Figure and Save
