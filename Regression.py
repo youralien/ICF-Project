@@ -3,9 +3,13 @@ import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.cross_validation import train_test_split
+
+import thinkstats2
+import thinkplot
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
@@ -210,13 +214,19 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
     to predicting the deltaBKD curve for a particular identification. 
     This identification could be date, flt, org, des, bc.  Saves the plot to a 
     specified result directory. Note that the result directory is created 
-    automatically if it does not already exist in the file system. """
+    automatically if it does not already exist in the file system. 
+
+
+    return: pred_minus_actual TOTALBKD, to be turned into a distribution
+            index, the total number of flight/bc pairs 
+    """
 
     # For column indicies, See encodeFlight and encodeInterpolatedFlight 
     # in a line that says nums = (..., bkd, keyday)
     KEYDAY_INDEX = -1 
     BKD_INDEX = -2
-    
+    pred_minus_actual = [] # TOTALBKD
+
     if not X_test[0, KEYDAY_INDEX] < 0:
         print "Feature accessed is not negative. Assert that keydays \
             start at a negative value or assert that KEYDAY_INDEX is correct"
@@ -224,8 +234,8 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
 
     index = 0
     current_snapshot = 0
+    
     while(True):
-        # Initialize variables
         current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
         initial_bkd = X_test[current_snapshot, BKD_INDEX]    
         keyday_vector = []
@@ -233,6 +243,7 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
         y_pred_vector = []
         totalbkd_test = initial_bkd
         totalbkd_pred = initial_bkd
+        
         # Build up keyday, y_test, y_pred vectors, and totalbkd sums
         try:
             # While Keydays are ascending from -90 -> 0 (i.e. Same Flight)
@@ -249,28 +260,32 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
             print "Plotting Complete"
             break
 
-        mean_percent_error = MAPE(y_test_vector, y_pred_vector)
-        totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
-        # Create Figure and Save
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        plt.hold(True)
-        ax.plot(keyday_vector, y_test_vector,'b')
-        ax.plot(keyday_vector, y_pred_vector, 'r')
-        ax.set_title(str(identifiers_test[index,:])+ 
-            "\nTOTALBKD: actual, predicted, error | {0}, {1}, {2}%".format(
-                round(totalbkd_test,1),round(totalbkd_pred,1),round(totalbkd_percent_error,1)) )
-        ax.legend(['test','predict'],loc=3)
-        ax.set_xlabel('-KEYDAY from Departure')
-        ax.set_ylabel('delta BKD')
-        ax.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
-            verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, color='green', fontsize=13)
-        plt.savefig(result_dir + str(index))
-        plt.close(fig)
+        pred_minus_actual.append(totalbkd_pred - totalbkd_test)
+
+        if index < 100:
+            mean_percent_error = MAPE(y_test_vector, y_pred_vector)
+            totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
+            # Create Figure and Save
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            plt.hold(True)
+            ax.plot(keyday_vector, y_test_vector,'b')
+            ax.plot(keyday_vector, y_pred_vector, 'r')
+            ax.set_title(str(identifiers_test[index,:])+ 
+                "\nTOTALBKD: actual, predicted, error | {0}, {1}, {2}%".format(
+                    round(totalbkd_test,1),round(totalbkd_pred,1),round(totalbkd_percent_error,1)) )
+            ax.legend(['test','predict'],loc=3)
+            ax.set_xlabel('-KEYDAY from Departure')
+            ax.set_ylabel('delta BKD')
+            ax.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
+                verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, color='green', fontsize=13)
+            plt.savefig(result_dir + str(index))
+            plt.close(fig)
 
         index += 1
         current_snapshot += 1
-        
+    
+    return pred_minus_actual, index      
 
 def defineWorkingDirectory():
     return os.path.abspath(".")
@@ -280,15 +295,15 @@ def defineDataDirectory(working_dir):
 
 def defineResultDirectory(working_dir, market, interpolate, regressor):
     interpolated = "Interpolated" if interpolate else ''
-    return os.path.join(working_dir, "Results/Market/{0}{1}{2}/".format(market, interpolated, regressor.__name__))
+    return os.path.join(working_dir, "Results/Market/{0}{1}{2}/".format(market, regressor.__name__, interpolated))
 
-def RegressOnMarket(market, encoder, regressor):
+def RegressOnMarket(market, encoder, regressor, interpolate):
     """ market is in the form of an airport code i.e. "LHR" 
     See AirportCodes.py for encapsulation of the strings """
 
     working_dir = defineWorkingDirectory()
     data_dir = defineDataDirectory(working_dir)
-    result_dir = defineResultDirectory(working_dir, market, False, regressor)
+    result_dir = defineResultDirectory(working_dir, market, interpolate, regressor)
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     print "Loading from CSV"
@@ -300,103 +315,50 @@ def RegressOnMarket(market, encoder, regressor):
     v = Visualizer()
 
     print "Filtering for specified Market"
-    firstflight = n.f.getDrillDown(orgs=['DXB', market], dests=['DXB', market], cabins=["Y"])
+    if market is not None:
+        firstflight = n.f.getDrillDown(orgs=['DXB', market], dests=['DXB', market], cabins=["Y"])
+    else:
+        firstflight = n.f.getDrillDown(cabins=["Y"])
     unique_flights = n.f.getUniqueFlights(firstflight)
 
     print "Formatting Features and Targets into train and test sets"
     X, y, ids = flightSplit(unique_flights, encoder)
-    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.75)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
     
     print "Training the Model"
-    model = regressor()
+    model = regressor(n_jobs=-1)
     model.fit(X_train, y_train)
-    print "\nFeature Importances: [ ..., auth, avail, (deltat), bkd, keyday]", model.feature_importances_
+
+    try:
+        print "\nFeature Importances: [ ..., auth, avail, (deltat), bkd, keyday]" + str(model.feature_importances_)
+    except AttributeError:
+        try:
+            print "\nRegression Coeficients: [ ..., auth, avail, (deltat), bkd, keyday]"+str(model.coef_)
+        except AttributeError:
+            print "\nCannot express weights"
     y_pred = model.predict(X_test)
 
-    print "Saving figures"
-    cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
+    print "Calculating Errors Saving figures"
+    pred_minus_actual, num_uniqueids = cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
+    
+    pmf = thinkstats2.MakePmfFromList(pred_minus_actual)
+    cdf = thinkstats2.MakeCdfFromList(pred_minus_actual)
+    
+    thinkplot.Pmf(pmf)
+    thinkplot.Show(title="PMF",xlabel="TotalBKD Error (Predicted - Actual)")
+
+    thinkplot.Cdf(cdf)
+
+    thinkplot.Show(title="Number of Flt-BC: {}\n {}".format(num_uniqueids, result_dir),xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
 
 def main():
-    RegressOnMarket(AirportCodes.London, encodeFlight, RandomForestRegressor)
+    # RegressOnMarket(AirportCodes.London, encodeFlight, KNeighborsRegressor, False)
     # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor)
     # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor)
     # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor)
     # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor`)
+    return
 
 if __name__ == '__main__':
     main()
-
-# print "\nMeanAbsoluteError: " + str(meanAbsoluteError(y_test,y_pred))
-
-# # <codecell>
-
-# model.feature_importances_
-
-# # <rawcell>
-
-# # Visualize deltaBKD (y) for prediction on the test set vs the actual
-
-# # <codecell>
-
-# result_dir = os.path.join(os.path.abspath("."),"Results/deltaBKD-over-deltaT/RandomForestRegressor/DMMDXB/")
-
-
-
-
-# KEYDAY_INDEX = -2
-# BKD_INDEX = -5
-# totalbkd_test_vector = []
-# totalbkd_predict_vector = []
-
-# index = 0
-# current_snapshot = 0
-# while(True):
-#     initial_bkd = X_test[current_snapshot, BKD_INDEX]
-#     current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
-#     totalbkd_test = initial_bkd
-#     totalbkd_predict = initial_bkd
-#     try:
-#         while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday:
-#             totalbkd_test += y_test[current_snapshot]
-#             totalbkd_predict += y_pred[current_snapshot]
-#             current_snapshot += 1
-#             current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
-#     except IndexError:
-#         print ("TotalBKD from deltaBKD summation complete")
-#         break
-#     totalbkd_test_vector.append(totalbkd_test)
-#     totalbkd_predict_vector.append(totalbkd_predict)
-#     index += 1
-#     current_snapshot += 1
-
-# # <codecell>
-
-# print "\nMean Absolute Error of Calculating TotalBKD for a particular Booking Class: " + str(meanAbsoluteError(totalbkd_test_vector, totalbkd_predict_vector))
-
-# # <codecell>
-
-
-# total = float(len(cum_deltabkd))
-# mid = len([x for x in cum_deltabkd if x >= 0 and x < 3])
-# neg = len([x for x in cum_deltabkd if x < 0])
-# pos = len([x for x in cum_deltabkd if x > 3])
-
-# print neg / total
-# print mid / total
-# print pos / total
-
-# # <codecell>
-
-# import thinkstats2
-# import thinkplot
-
-# cdf = thinkstats2.MakeCdfFromList(cum_deltabkd_obsrvd)
-
-# # cdf = thinkstats2.MakeCdfFromList([x for x in cum_deltabkd if x >= 0 and x < 2],'Stevie Cum')
-# thinkplot.Cdf(cdf)
-# thinkplot.show()
-
-# # <codecell>
-
-# plt.plot(keyday_interp, bkd_interp, '.')
-# plt.show()
+    
