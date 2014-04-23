@@ -51,17 +51,17 @@ def encodeFlight(flt, df):
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
         avail = bc_df['AVAIL']
-
+        cap = bc_df['CAP']
+        
         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-
 
         delta_bkd = np.diff(bkd)
         delta_t = np.diff(keyday)
 
-        keyday, bkd, auth, avail, delta_t, delta_bkd = filterDataForKeyDay(
-            -90, keyday[:-1], bkd[:-1], auth[:-1], avail[:-1], delta_t, delta_bkd)
+        keyday, cap, bkd, auth, avail, delta_t, delta_bkd = filterDataForKeyDay(
+            -90, keyday[:-1], cap[:-1], bkd[:-1], auth[:-1], avail[:-1], delta_t, delta_bkd)
 
-        nums = (auth, avail, delta_t, bkd, keyday)
+        nums = (cap, auth, avail, delta_t, bkd, keyday)
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -87,16 +87,16 @@ def encodeInterpolatedFlight(flt, df):
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
         avail = bc_df['AVAIL']
-
+        cap = bc_df['CAP']
         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-        keyday, bkd, auth, avail = filterDataForKeyDay(-90, keyday, bkd, auth, avail)
+        keyday, bkd, auth, avail, cap = filterDataForKeyDay(-90, keyday, bkd, auth, avail, cap)
 
         keyday_interp = np.arange(-90, 1, 3)
-        bkd_interp, auth_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, auth, avail)
+        bkd_interp, auth_interp, avail_interp, cap_interp = interpolate(keyday_interp, keyday, bkd, auth, avail, cap)
 
         delta_bkd = np.diff(bkd_interp)
 
-        nums = (auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
+        nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -341,18 +341,15 @@ def RegressOnMarket(market, encoder, regressor, interpolate):
     print "Calculating Errors Saving figures"
     pred_minus_actual, num_uniqueids = cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
     
-    pmf = thinkstats2.MakePmfFromList(pred_minus_actual)
     cdf = thinkstats2.MakeCdfFromList(pred_minus_actual)
-    
-    thinkplot.Pmf(pmf)
-    thinkplot.Show(title="PMF",xlabel="TotalBKD Error (Predicted - Actual)")
 
     thinkplot.Cdf(cdf)
 
-    thinkplot.Show(title="Number of Flt-BC: {}\n {}".format(num_uniqueids, result_dir),xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
+    thinkplot.Show(title="Number of Flt-BC: {}\n {}".format(num_uniqueids, result_dir),
+        xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
 
 def main():
-    # RegressOnMarket(AirportCodes.London, encodeFlight, KNeighborsRegressor, False)
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor, True)
     # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor)
     # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor)
     # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor)
@@ -361,4 +358,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
