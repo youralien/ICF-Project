@@ -39,6 +39,13 @@ class Utils():
                     (5,'P','J'),
                     (6,'R','J')]
 
+    @staticmethod
+    def compareBCs(bc1, bc2):
+        c1, r1 = Utils.mapBookingClassToCabinHierarchy(bc1)
+        c2, r2 = Utils.mapBookingClassToCabinHierarchy(bc2)
+
+        return r2 - r1
+
 
     @staticmethod
     def mapBookingClassToCabinHierarchy(booking_class):
