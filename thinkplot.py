@@ -185,6 +185,7 @@ def Plot(xs, ys, style='', **options):
         
     options = Underride(options, linewidth=3, alpha=0.8)
     pyplot.plot(xs, ys, style, **options)
+    pyplot.grid()
 
 
 def Scatter(xs, ys, **options):
