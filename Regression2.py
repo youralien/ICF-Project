@@ -6,92 +6,98 @@ from Utils import Utils
 from AirportCodes import AirportCodes
 
 def KFoldSplit(X, y, identifiers, n_folds):
-	pass
+    pass
 
 def encodeFlights(flights, interp_params, cat_encoding):
-	data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
-	X, y, identifiers = zip(*data)
-	return X, y, identifiers
+    data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) 
+            for flt, flt_df in flights]
+    X, y, identifiers = zip(*data)
+    return X, y, identifiers
 
 def encodeFlight(flt, df, interp_params, cat_encoding):
-	"""
-	args:
-		interp_params: tuple of (start, stop, number_of_points) to use in
-					   interpolate
-		cat_encoding: tuple of (bin_size, date_reduction) specifying how 
-					  compressed the BC and day of week categorical features
-					  should be in the final feature matrix
-	returns:
-		tuple of (features, targets, flight IDs) suitable for use in training
-		and graph generation
-	"""
-	X = None
-	y = None
-	identifiers = None
-	bc_groupby = df.groupby('BC')
-	bc_groupby = sortBCGroupby(bc_groupby)
+    """
+    args:
+        interp_params: tuple of (start, stop, number_of_points) to use in
+                       interpolate
+        cat_encoding: tuple of (bin_size, date_reduction) specifying how 
+                      compressed the BC and day of week categorical features
+                      should be in the final feature matrix
+    returns:
+        tuple of (features, targets, flight IDs) suitable for use in training
+        and graph generation
+    """
+    X = None
+    y = None
+    identifiers = None
+    bc_groupby = df.groupby('BC')
+    bc_groupby = sortBCGroupby(bc_groupby)
 
-	for bc, bc_df in bc_groupby:
-		# Unpack relevant columns of the dataframe
-		keyday = -1 * bc_df['KEYDAY']
-		bkd = bc_df['BKD']
-		auth = bc_df['AUTH']
-		avail = bc_df['AVAIL']
-		cap = bc_df['CAP']
+    for bc, bc_df in bc_groupby:
+        # Unpack relevant columns of the dataframe
+        keyday = -1.0 * bc_df['KEYDAY']
+        bkd = bc_df['BKD']
+        auth = bc_df['AUTH']
+        avail = bc_df['AVAIL']
+        cap = bc_df['CAP']
 
-		# Stack the numerical and categorical data into a feature matrix
-		nums = encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap)
-		cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
-		features = hStackMatrices(cats, nums)
+        # Stack the numerical and categorical data into a feature matrix
+        nums = encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap)
+        cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
+        features = hStackMatrices(cats, nums)
 
-		# Save the new features in the X and y sets
-		X = vStackMatrices(X, features)
-		y = hStackMatrices(y, delta_bkd)
-		identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
+        # Save the new features in the X and y sets
+        X = vStackMatrices(X, features)
+        y = hStackMatrices(y, delta_bkd)
+        identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
 
-		return X, y, identifiers
+        return X, y, identifiers
 
 def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
-	keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-	keyday, bkd, auth, avail, cap = filterDataForKeyDay(
-		keyday, bkd, auth, avail, cap)
-	keyday, bkd, auth, avail, cap = interpolateFlight(
-		interp_params, keyday, bkd, auth, avail, cap)
+    start, stop, num_points = interp_params
+    keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
+    keyday, bkd, auth, avail, cap = filterDataForKeyDay(
+        start, keyday, bkd, auth, avail, cap)
+    keyday, bkd, auth, avail, cap = interpolateFlight(
+        interp_params, keyday, bkd, auth, avail, cap)
 
-	# Create any other features
-	delta_bkd = np.diff(bkd)
-	cabin_load_factor = bkd / cap
+    # Create any other features
+    delta_bkd = np.diff(bkd)
+    clf = bkd / cap
 
-	# Stack the numerical data into a feature matrix
-	nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
-	nums = np.column_stack(nums)
+    # Stack the numerical data into a feature matrix
+    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
+    nums = np.column_stack(nums)
 
-	return nums
+    return nums
 
 def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
-	start, stop, num_points = interp_params
-	keyday_vals = np.linspace(start, stop, num_points)
-	keyday, bkd, auth, avail = interpolate(
-		keyday_vals, keyday, bkd, auth, avail)
+    start, stop, num_points = interp_params
+    keyday_vals = np.linspace(start, stop, num_points)
+    bkd, auth, avail = interpolate(
+        keyday_vals, keyday, bkd, auth, avail)
 
-	cap = float(cap.iget(0))
-	cap = np.array([cap] * len(keyday))
+    cap = float(cap.iget(0))
+    cap = np.array([cap] * len(keyday_vals))
 
-	return keyday, bkd, auth, avail, cap
+    return keyday_vals, bkd, auth, avail, cap
 
 def encodeCategoricalData():
-	pass
+    pass
 
 def sortBCGroupby(groupby):
-	tups = [(bc, bc_df) for bc, bc_df in groupby]
-	return sorted(tups, key=lambda tup: Utils.compareBCs(tup[0]))
+    tups = [(bc, bc_df) for bc, bc_df in groupby]
+    return sorted(tups, key=lambda tup: Utils.compareBCs(tup[0]))
 
 def interpolate(keyday_vals, keydays, *args):
     interps = [np.interp(keyday_vals, keydays, arg, left=0) for arg in args]
+
     return interps
 
 def filterDataForKeyDay(time, keydays, *args):
-    index = next((i for i, k in enumerate(keydays) if k > time), keydays[0])
+    print "filterDataForKeyDay"
+    print keydays
+    print enumerate(keydays)
+    index = next((i for i, k in enumerate(keydays) if k > time))
     filtered_keydays = keydays[index:]
     filtered_args = [arg[index:] for arg in args]
     return [filtered_keydays] + filtered_args
@@ -114,25 +120,40 @@ def stackMatrices(x, new_x, fun):
     return x
 
 def main():
-	# Set parameters for opening the data
-	# num_records = 'all'
-	num_records = 'all'
-	csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
+    # Set parameters for loading the data
+    num_records = 'all'
+    csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
 
-	# Set parameters for filtering the data
-	market = AirportCodes.London
-	orgs=[AirportCodes.Dubai, market]
-	dests=[AirportCodes.Dubai, market]
-	cabins=["Y"]
+    # Set parameters for filtering the data
+    market = AirportCodes.London
+    orgs=[AirportCodes.Dubai, market]
+    dests=[AirportCodes.Dubai, market]
+    cabins=["Y"]
 
-	# Get the data, filter it, and group it by flight
-	f = FeatureFilter(num_records, csvfile)
-	data = f.getDrillDown(orgs=orgs, dests=dests, cabins=cabins)
-	unique_flights = f.getUniqueFlights(data)
+    # Get the data, filter it, and group it by flight
+    print "Loading " + csvfile
+    f = FeatureFilter(num_records, csvfile)
 
-	# Encode the flights
-	x, y, i = encodeFlights(unique_flights, None)
-	print type(x), type(y), type(i)
+    print "Filtering"
+    data = f.getDrillDown(orgs=orgs, dests=dests, cabins=cabins)
+
+    print "Grouping by flight"
+    unique_flights = f.getUniqueFlights(data)
+
+    # Encode the flights
+    print "Encoding flight data"
+    start = -90
+    stop = 0
+    num_points = 31
+
+    interp_params = (start, stop, num_points)
+
+    bin_size = 1
+    date_reduction = -1
+    cat_encoding = (bin_size, date_reduction)
+
+    x, y, i = encodeFlights(unique_flights, interp_params, cat_encoding)
+    print type(x), type(y), type(i)
 
 if __name__ == '__main__':
-	main()
+    main()
