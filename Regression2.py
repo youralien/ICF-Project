@@ -5,13 +5,25 @@ from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
 
+def KFoldSplit(X, y, identifiers, n_folds):
+	pass
+
+def encodeFlights(flights, interp_params, cat_encoding):
+	data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
+	X, y, identifiers = zip(*data)
+	return X, y, identifiers
+
 def encodeFlight(flt, df, interp_params, cat_encoding):
 	"""
 	args:
 		interp_params: tuple of (start, stop, number_of_points) to use in
 					   interpolate
-
-		cat_encoding: ???
+		cat_encoding: tuple of (bin_size, date_reduction) specifying how 
+					  compressed the BC and day of week categorical features
+					  should be in the final feature matrix
+	returns:
+		tuple of (features, targets, flight IDs) suitable for use in training
+		and graph generation
 	"""
 	X = None
 	y = None
@@ -27,30 +39,34 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
 		avail = bc_df['AVAIL']
 		cap = bc_df['CAP']
 
-		# Sort, filter, and interpolate the data
-		keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-		keyday, bkd, auth, avail, cap = filterDataForKeyDay(
-			keyday, bkd, auth, avail, cap)
-		keyday, bkd, auth, avail, cap = interpolateFlight(
-			interp_params, keyday, bkd, auth, avail, cap)
-
-		# Create any other features
-		delta_bkd = np.diff(bkd)
-		cabin_load_factor = bkd / cap
-
 		# Stack the numerical and categorical data into a feature matrix
-		nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
-		nums = np.column_stack(nums)
-		cats = encodeCategoricalData(flt, bc)
-		cats = np.tile(cats, (len(nums), 1))
+		nums = encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap)
+		cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
 		features = hStackMatrices(cats, nums)
 
 		# Save the new features in the X and y sets
 		X = vStackMatrices(X, features)
 		y = hStackMatrices(y, delta_bkd)
+		identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
 
-		return X, y
+		return X, y, identifiers
 
+def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
+	keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
+	keyday, bkd, auth, avail, cap = filterDataForKeyDay(
+		keyday, bkd, auth, avail, cap)
+	keyday, bkd, auth, avail, cap = interpolateFlight(
+		interp_params, keyday, bkd, auth, avail, cap)
+
+	# Create any other features
+	delta_bkd = np.diff(bkd)
+	cabin_load_factor = bkd / cap
+
+	# Stack the numerical data into a feature matrix
+	nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
+	nums = np.column_stack(nums)
+
+	return nums
 
 def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
 	start, stop, num_points = interp_params
@@ -62,6 +78,9 @@ def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
 	cap = np.array([cap] * len(keyday))
 
 	return keyday, bkd, auth, avail, cap
+
+def encodeCategoricalData():
+	pass
 
 def sortBCGroupby(groupby):
 	tups = [(bc, bc_df) for bc, bc_df in groupby]
@@ -97,7 +116,7 @@ def stackMatrices(x, new_x, fun):
 def main():
 	# Set parameters for opening the data
 	# num_records = 'all'
-	num_records = 10000
+	num_records = 'all'
 	csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
 
 	# Set parameters for filtering the data
@@ -112,6 +131,8 @@ def main():
 	unique_flights = f.getUniqueFlights(data)
 
 	# Encode the flights
+	x, y, i = encodeFlights(unique_flights, None)
+	print type(x), type(y), type(i)
 
 if __name__ == '__main__':
 	main()
