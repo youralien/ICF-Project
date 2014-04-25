@@ -13,9 +13,9 @@ class FeatureFilter():
         CSV file and groups rows according to various feature values.
     """
 
-    def __init__(self, n, csvfile):
+    def __init__(self, num_records, csvfile):
         self.csvfile = csvfile
-        self.entities = self._loadBookings(n)
+        self.entities = self._loadBookings(num_records)
 
         self._filteredByOrgDes = None
         self._filteredByUniqueFlights = None
@@ -119,17 +119,17 @@ class FeatureFilter():
         else:
             return pd.Series(True, list(m.index))
 
-    def _loadBookings(self, n):
+    def _loadBookings(self, num_records):
         """
         n: Number of lines to read from self.csvfile
 
         returns: Pandas DataFrame object with n rows of bookings
         """
 
-        if n == 'all':
+        if num_records == 'all':
             return pd.read_csv(self.csvfile)
         else:
-            return pd.read_csv(self.csvfile, nrows=int(n))
+            return pd.read_csv(self.csvfile, nrows=int(num_records))
 
     def _filterByOrgDes(self, df):
         """
