@@ -117,7 +117,7 @@ def encodeInterpolatedFlight(flt, df):
 
         y = hStackMatrices(y, delta_bkd)
 
-        identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
+        identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
 
     bkd_lower = extractBKDLower(X, num-1, -2)
     X = colStackMatrices(X, bkd_lower)
@@ -154,13 +154,25 @@ def filterDataForKeyDay(time, keydays, *args):
     filtered_args = [arg[index:] for arg in args]
     return [filtered_keydays] + filtered_args
 
-def encodeCategoricalData(flt, bc):
-    date, flt_num, org, des = flt
-    enc_date = encodeDate(date)
+def encodeCategoricalData(flt, bc, num_length, cat_encoding):
+    """
+    args:
+        num_length: int, representing length of the numerical features
+        cat_encoding: tuple, (bin_size, date_reduction)
 
-    enc_bc = encodeBookingClass(bc)
+    returns: 
+        features, the categorical features, as a matrix appropriate
+        to stack with thenumerical features 
+    """
+
+    date, flt_num, org, des = flt
+    bin_size, date_reduction = cat_encoding
+    enc_date = encodeDate(date, date_reduction)
+
+    enc_bc = encodeBookingClass(bc, bin_size)
     features = (enc_date, enc_bc)
     features = np.hstack(features)
+    features = np.tile(features, (num_length, 1))
 
     return features
 
@@ -181,23 +193,30 @@ def stackMatrices(x, new_x, fun):
 
     return x
 
-def encodeDate(date):
+def encodeDate(date, date_reduction):
     """
-    Returns a Various encodings of DATE 
-    
-    example:
-    date = "4/8/2014"
-    day = "Tuesday"
-    returns [0, 0, 1, 0, 0, 0, 0] (OneHotEncoding) +
-            [0] (Weekend) 
+    args:
+        date: In the form month/day/year i.e. "4/8/2014"
+        date_reduction: -1 for one_hot and is_weekend
+                        0 for is_weekend
+                        1 for one_hot only
 
-
+    returns:
+        various encodings of date
     """
     day = Utils.date2DayOfWeek(date)
     one_hot_day = oneHotDay(day)
     is_weekend = [Utils.isWeekend(day)]
-    return one_hot_day + is_weekend
-
+    
+    if date_reduction == -1:
+        return one_hot_day + is_weekend
+    
+    elif date_reduction == 0:
+        return is_weekend
+    
+    elif date_reduction == 1
+        return one_hot_day
+        
 def oneHotDay(day):
     """
     Returns a One Hot Encoding of specific day
@@ -216,11 +235,11 @@ def oneHotDay(day):
     vector[index] = 1
     return vector
 
-def encodeBookingClass(bc):
+def encodeBookingClass(bc, bin_size):
     """ Returns a various encodings of BC.
     including OneHot or 1-K Methods and binning the rank
     """
-    return oneHotBookingClass(bc, bin_size=2)
+    return oneHotBookingClass(bc, bin_size)
 
 def oneHotBookingClass(bc, bin_size=1):
     """ Returns a binned 1-to-K or one-hot encoding of BC.
