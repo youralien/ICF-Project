@@ -182,23 +182,43 @@ def stackMatrices(x, new_x, fun):
 
 def encodeDate(date):
     """
-    Returns a 1-to-K encoding of DATE. 
+    Returns a Various encodings of DATE 
     
     example:
     date = "4/8/2014"
     day = "Tuesday"
-    returns [0, 0, 1, 0, 0, 0, 0]
+    returns [0, 0, 1, 0, 0, 0, 0] (OneHotEncoding) +
+            [0] (Weekend) 
+
+
     """
     day = Utils.date2DayOfWeek(date)
+    one_hot_day = oneHotDay(day)
+    is_weekend = [Utils.isWeekend(day)]
+    return one_hot_day + is_weekend
+
+def oneHotDay(day):
+    """
+    Returns a One Hot Encoding of specific day
+
+    day: i.e. "Tuesday"
+
+    return: a one hot or 1-K encoding of day of week 
+
+    example:
+
+    >>> oneHoteDay("Tuesday")
+    [0, 0, 1, 0, 0, 0, 0]
+    """
+    vector = np.zeros(len(Utils.days_of_week))
     index = Utils.days_of_week.index(day)
-    vector = [0] * len(Utils.days_of_week)
     vector[index] = 1
     return vector
 
 def encodeBookingClass(bc):
     """ Returns a 1-to-K or one-hot encoding of BC."""
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
-    encoded_vector = [0] * len(Utils.bc_hierarchy)
+    encoded_vector = np.zeros(len(Utils.bc_hierarchy))
     encoded_vector[rank] = 1
     return encoded_vector
 
