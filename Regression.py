@@ -275,8 +275,8 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
         keyday_vector = []
         y_test_vector = []
         y_pred_vector = []
-        totalbkd_test = initial_bkd
-        totalbkd_pred = initial_bkd
+        bkd_test = [initial_bkd]
+        bkd_pred = [initial_bkd]
         
         # Build up keyday, y_test, y_pred vectors, and totalbkd sums
         try:
@@ -285,8 +285,8 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
                 keyday_vector.append(current_keyday)
                 y_test_vector.append(y_test[current_snapshot])
                 y_pred_vector.append(y_pred[current_snapshot])
-                totalbkd_test += y_test[current_snapshot]
-                totalbkd_pred += y_pred[current_snapshot]
+                bkd_test.append(bkd_test[-1]+y_test[current_snapshot])
+                bkd_pred.append(bkd_pred[-1]+y_pred[current_snapshot])
                 
                 current_snapshot += 1
                 current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
@@ -294,6 +294,8 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
             print "Plotting Complete"
             break
 
+        totalbkd_pred = bkd_pred.pop()
+        totalbkd_test = bkd_test.pop()
         pred_minus_actual.append(totalbkd_pred - totalbkd_test)
 
         if index < 100:
@@ -301,19 +303,41 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
             totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
             # Create Figure and Save
             fig = plt.figure()
-            ax = fig.add_subplot(111)
+            ax = fig.add_subplot(1,1,1)
+            ax1 = fig.add_subplot(2,1,1)
+            ax2 = fig.add_subplot(2,1,2)
+
+            # Turn off axis lines and ticks of the big subplot
+            ax.spines['top'].set_color('none')
+            ax.spines['bottom'].set_color('none')
+            ax.spines['left'].set_color('none')
+            ax.spines['right'].set_color('none')
+            ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+
             plt.hold(True)
-            ax.plot(keyday_vector, y_test_vector,'b')
-            ax.plot(keyday_vector, y_pred_vector, 'r')
-            ax.set_title(str(identifiers_test[index,:])+ 
+
+            ax1.plot(keyday_vector, y_test_vector,'b')
+            ax1.plot(keyday_vector, y_pred_vector, 'r')
+            ax2.plot(keyday_vector, bkd_test,'b')
+            ax2.plot(keyday_vector, bkd_pred, 'r')
+
+            fig.suptitle(str(identifiers_test[index,:])+ 
                 "\nTOTALBKD: actual, predicted, error | {0}, {1}, {2}%".format(
                     round(totalbkd_test,1),round(totalbkd_pred,1),round(totalbkd_percent_error,1)) )
-            ax.legend(['test','predict'],loc=3)
-            ax.set_xlabel('-KEYDAY from Departure')
-            ax.set_ylabel('delta BKD')
-            ax.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
-                verticalalignment='bottom', horizontalalignment='right', transform=ax.transAxes, color='green', fontsize=13)
-            plt.savefig(result_dir + str(index))
+            
+            ax1.legend(['test','predict'],loc=3)
+            ax1.set_xlabel('-KEYDAY from Departure')
+            ax1.set_ylabel('delta BKD')
+            ax1.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
+                verticalalignment='bottom', horizontalalignment='right', transform=ax1.transAxes, color='green', fontsize=13)
+
+            ax2.legend(['test','predict'],loc=3)
+            ax2.set_xlabel('-KEYDAY from Departure')
+            ax2.set_ylabel('BKD')
+            # ax1.text(0.95, 0.01, "Mean Percent Error: {}%".format(mean_percent_error), 
+                # verticalalignment='bottom', horizontalalignment='right', transform=ax2.transAxes, color='green', fontsize=13)
+
+            plt.savefig(result_dir + str(index), bbox_inches='tight')
             plt.close(fig)
 
         index += 1
@@ -384,8 +408,10 @@ def RegressOnMarket(market, encoder, model, interpolate):
         xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
 
 def main():
+    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, KNeighborsRegressor(n_neighbors=5), True)
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor(), True)
     # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, AdaBoostRegressor(DecisionTreeRegressor(),n_estimators=300), True)
-    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, GradientBoostingRegressor(), True)
+    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, GradientBoostingRegressor(), True)
     # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor(), True)
     # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor(), True)
     # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor(), True)
