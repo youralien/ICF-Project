@@ -52,7 +52,6 @@ def encodeFlight(flt, df):
     identifiers = None
 
     for bc, bc_df in sortedBCs(df.groupby('BC')):
-        enc_bc = encodeBookingClass(bc)
         keyday = -1 * bc_df['KEYDAY']
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
@@ -90,7 +89,6 @@ def encodeInterpolatedFlight(flt, df):
     start, stop, num = (-90, 0, 31)
 
     for bc, bc_df in sortedBCs(df.groupby('BC')):
-        enc_bc = encodeBookingClass(bc)
         keyday = -1 * bc_df['KEYDAY']
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
@@ -105,7 +103,7 @@ def encodeInterpolatedFlight(flt, df):
         cap_interp.fill(float(cap.iget(0)))
         delta_bkd = np.diff(bkd_interp)
 
-        clf_interp = bkd_interp / cap_interp[0] #BROKEN
+        clf_interp = bkd_interp / cap_interp[0]
 
         # nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = (cap_interp[:-1], avail_interp[:-1], clf_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
@@ -185,25 +183,61 @@ def stackMatrices(x, new_x, fun):
 
 def encodeDate(date):
     """
-    Returns a 1-to-K encoding of DATE. 
+    Returns a Various encodings of DATE 
     
     example:
     date = "4/8/2014"
     day = "Tuesday"
-    returns [0, 0, 1, 0, 0, 0, 0]
+    returns [0, 0, 1, 0, 0, 0, 0] (OneHotEncoding) +
+            [0] (Weekend) 
+
+
     """
     day = Utils.date2DayOfWeek(date)
+    one_hot_day = oneHotDay(day)
+    is_weekend = [Utils.isWeekend(day)]
+    return one_hot_day + is_weekend
+
+def oneHotDay(day):
+    """
+    Returns a One Hot Encoding of specific day
+
+    day: i.e. "Tuesday"
+
+    return: a one hot or 1-K encoding of day of week 
+
+    example:
+
+    >>> oneHoteDay("Tuesday")
+    [0, 0, 1, 0, 0, 0, 0]
+    """
+    vector = np.zeros(len(Utils.days_of_week))
     index = Utils.days_of_week.index(day)
-    vector = [0] * len(Utils.days_of_week)
     vector[index] = 1
     return vector
 
 def encodeBookingClass(bc):
-    """ Returns a 1-to-K or one-hot encoding of BC."""
+    """ Returns a various encodings of BC.
+    including OneHot or 1-K Methods and binning the rank
+    """
+    return oneHotBookingClass(bc, bin_size=2)
+
+def oneHotBookingClass(bc, bin_size=1):
+    """ Returns a binned 1-to-K or one-hot encoding of BC.
+    
+    bc: a booking class letter
+    bin_size: number of bc that fit into one bin
+    
+    if bin_size=1 (default), we have a true 1-K encoding
+    """
+    assert len(Utils.bc_hierarchy) % bin_size == 0, "Invalid Bin Size"
+
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
-    encoded_vector = [0] * len(Utils.bc_hierarchy)
-    encoded_vector[rank] = 1
-    return encoded_vector
+    
+    enc_vector = np.zeros(len(Utils.bc_hierarchy)/bin_size)
+    enc_vector[rank/bin_size] = 1
+
+    return enc_vector
 
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)

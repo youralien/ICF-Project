@@ -105,6 +105,17 @@ class Utils():
         return day.strftime("%A")
 
     @staticmethod
+    def isWeekend(day):
+        """ True if in the Dubai Weekend (Thursday, Friday, Sat) else False
+
+        day: i.e. "Tuesday"
+
+        return: True/False for Weekend/Weekday
+        """
+        weekend_days = ["Thursday", "Friday", "Saturday"]
+        return True if day in weekend_days else False
+
+    @staticmethod
     def writeSeriesToFile(f, series, indent=''):
         for i in range(series.size):
             index = series.index[i]
