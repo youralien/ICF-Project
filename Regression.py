@@ -81,12 +81,10 @@ def encodeFlight(flt, df):
 
     return X, y, identifiers 
 
-def encodeInterpolatedFlight(flt, df):
+def encodeInterpolatedFlight(flt, df, start=-90, stop=0, num=31):
     X = None
     y = None
     identifiers = None
-
-    start, stop, num = (-90, 0, 31)
 
     for bc, bc_df in sortedBCs(df.groupby('BC')):
         enc_bc = encodeBookingClass(bc)
@@ -251,15 +249,17 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
     automatically if it does not already exist in the file system. 
 
 
-    return: pred_minus_actual TOTALBKD, to be turned into a distribution
-            index, the total number of flight/bc pairs 
+    returns:
+    totalBKD_Error: for all flight-bc
+    deltaBKD_Error: for all flight-bc over keydays
+    BKD_Error: for all flight-bc over keydays
+    index: the total number of flight/bc pairs 
     """
 
     # For column indicies, See encodeFlight and encodeInterpolatedFlight 
     # in a line that says nums = (..., bkd, keyday, bkd_lower)
     KEYDAY_INDEX = -2 
     BKD_INDEX = -3
-    pred_minus_actual = [] # TOTALBKD
 
     if not X_test[0, KEYDAY_INDEX] < 0:
         print "Feature accessed is not negative. Assert that keydays \
@@ -269,12 +269,16 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
     index = 0
     current_snapshot = 0
     
+    totalBKD_Error = [] # TOTALBKD
+    deltaBKD_Error = None
+    BKD_Error = None
+
     while(True):
         current_keyday = X_test[current_snapshot, KEYDAY_INDEX]
         initial_bkd = X_test[current_snapshot, BKD_INDEX]    
         keyday_vector = []
-        y_test_vector = []
-        y_pred_vector = []
+        deltabkd_test = []
+        deltabkd_pred = []
         bkd_test = [initial_bkd]
         bkd_pred = [initial_bkd]
         
@@ -282,9 +286,10 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
         try:
             # While Keydays are ascending from -90 -> 0 (i.e. Same Flight)
             while X_test[current_snapshot + 1, KEYDAY_INDEX] > current_keyday: 
+                
                 keyday_vector.append(current_keyday)
-                y_test_vector.append(y_test[current_snapshot])
-                y_pred_vector.append(y_pred[current_snapshot])
+                deltabkd_test.append(y_test[current_snapshot])
+                deltabkd_pred.append(y_pred[current_snapshot])
                 bkd_test.append(bkd_test[-1]+y_test[current_snapshot])
                 bkd_pred.append(bkd_pred[-1]+y_pred[current_snapshot])
                 
@@ -296,10 +301,16 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
 
         totalbkd_pred = bkd_pred.pop()
         totalbkd_test = bkd_test.pop()
-        pred_minus_actual.append(totalbkd_pred - totalbkd_test)
+        
+        deltaBKD_Error = vStackMatrices(deltaBKD_Error, 
+                            np.array(deltabkd_pred) - np.array(deltabkd_test))
+        BKD_Error = vStackMatrices(BKD_Error, 
+                        np.array(bkd_pred) - np.array(bkd_test))
+        
+        totalBKD_Error.append(totalbkd_pred - totalbkd_test)
 
         if index < 100:
-            mean_percent_error = MAPE(y_test_vector, y_pred_vector)
+            mean_percent_error = MAPE(deltabkd_test, deltabkd_pred)
             totalbkd_percent_error = 100*np.abs(totalbkd_pred-totalbkd_test)/float(totalbkd_test)
             # Create Figure and Save
             fig = plt.figure()
@@ -316,8 +327,8 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
 
             plt.hold(True)
 
-            ax1.plot(keyday_vector, y_test_vector,'b')
-            ax1.plot(keyday_vector, y_pred_vector, 'r')
+            ax1.plot(keyday_vector, deltabkd_test,'b')
+            ax1.plot(keyday_vector, deltabkd_pred, 'r')
             ax2.plot(keyday_vector, bkd_test,'b')
             ax2.plot(keyday_vector, bkd_pred, 'r')
 
@@ -343,7 +354,7 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
         index += 1
         current_snapshot += 1
     
-    return pred_minus_actual, index      
+    return totalBKD_Error, deltaBKD_Error, BKD_Error, index      
 
 def defineWorkingDirectory():
     return os.path.abspath(".")
@@ -398,18 +409,18 @@ def RegressOnMarket(market, encoder, model, interpolate):
     y_pred = model.predict(X_test)
 
     print "Calculating Errors Saving figures"
-    pred_minus_actual, num_uniqueids = cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
-    
-    cdf = thinkstats2.MakeCdfFromList(pred_minus_actual)
+    totalBKD_Error, deltaBKD_Error, BKD_Error, num_uniqueids = cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)
 
-    thinkplot.Cdf(cdf)
+    cdf_totalBKD_Error = thinkstats2.MakeCdfFromList(totalBKD_Error)
+
+    thinkplot.Cdf(cdf_totalBKD_Error)
 
     thinkplot.Show(title="Number of Flt-BC: {}\n {}".format(num_uniqueids, result_dir),
         xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
 
 def main():
-    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, KNeighborsRegressor(n_neighbors=5), True)
-    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor(), True)
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, KNeighborsRegressor(n_neighbors=3), True)
+    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor(), True)
     # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, AdaBoostRegressor(DecisionTreeRegressor(),n_estimators=300), True)
     # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, GradientBoostingRegressor(), True)
     # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor(), True)
