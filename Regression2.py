@@ -41,7 +41,8 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         cap = bc_df['CAP']
 
         # Stack the numerical and categorical data into a feature matrix
-        nums = encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap)
+        delta_bkd, nums = encodeNumericalData(
+            interp_params, keyday, bkd, auth, avail, cap)
         cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
         features = hStackMatrices(cats, nums)
 
@@ -68,7 +69,7 @@ def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
     nums = np.column_stack(nums)
 
-    return nums
+    return delta_bkd, nums
 
 def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
     start, stop, num_points = interp_params
@@ -124,7 +125,7 @@ def encodeDate(date, date_reduction):
     elif date_reduction == 0:
         return is_weekend
     
-    elif date_reduction == 1
+    elif date_reduction == 1:
         return one_hot_day
         
 def oneHotDay(day):
@@ -178,9 +179,6 @@ def interpolate(keyday_vals, keydays, *args):
     return interps
 
 def filterDataForKeyDay(time, keydays, *args):
-    print "filterDataForKeyDay"
-    print keydays
-    print enumerate(keydays)
     index = next((i for i, k in enumerate(keydays) if k > time))
     filtered_keydays = keydays[index:]
     filtered_args = [arg[index:] for arg in args]
@@ -237,7 +235,6 @@ def main():
     cat_encoding = (bin_size, date_reduction)
 
     x, y, i = encodeFlights(unique_flights, interp_params, cat_encoding)
-    print type(x), type(y), type(i)
 
 if __name__ == '__main__':
     main()
