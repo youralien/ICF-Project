@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.cross_validation import train_test_split
 
@@ -85,6 +86,8 @@ def encodeInterpolatedFlight(flt, df):
     y = None
     identifiers = None
 
+    start, stop, num = (-90, 0, 31)
+
     for bc, bc_df in sortedBCs(df.groupby('BC')):
         enc_bc = encodeBookingClass(bc)
         keyday = -1 * bc_df['KEYDAY']
@@ -93,15 +96,18 @@ def encodeInterpolatedFlight(flt, df):
         avail = bc_df['AVAIL']
         cap = bc_df['CAP']
         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-        keyday, bkd, auth, avail, cap = filterDataForKeyDay(-90, keyday, bkd, auth, avail, cap)
+        keyday, bkd, auth, avail, cap = filterDataForKeyDay(start, keyday, bkd, auth, avail, cap)
 
-        keyday_interp = np.linspace(-90, 0, 31)
-        bkd_interp, auth_interp, avail_interp, cap_interp = interpolate(keyday_interp, keyday, bkd, auth, avail, cap)
-
+        keyday_interp = np.linspace(start, stop, num)
+        bkd_interp, auth_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, auth, avail)
+        cap_interp = np.zeros(len(keyday_interp))
+        cap_interp.fill(float(cap.iget(0)))
         delta_bkd = np.diff(bkd_interp)
-        # clf = bkd_interp / np.array(cap_interp, dtype=np.float64) #BROKEN
 
-        nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
+        clf_interp = bkd_interp / cap_interp[0] #BROKEN
+
+        # nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
+        nums = (cap_interp[:-1], avail_interp[:-1], clf_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = np.column_stack(nums)
         cats = encodeCategoricalData(flt, bc)
         cats = np.tile(cats, (len(nums), 1)) 
@@ -114,7 +120,7 @@ def encodeInterpolatedFlight(flt, df):
 
         identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
 
-    bkd_lower = extractBKDLower(X, 30, -2)
+    bkd_lower = extractBKDLower(X, num-1, -2)
     X = colStackMatrices(X, bkd_lower)
 
     return X, y, identifiers 
@@ -323,15 +329,17 @@ def defineDataDirectory(working_dir):
 
 def defineResultDirectory(working_dir, market, interpolate, regressor):
     interpolated = "Interpolated" if interpolate else ''
-    return os.path.join(working_dir, "Results/Market/{0}{1}{2}/".format(market, regressor.__name__, interpolated))
+    return os.path.join(working_dir, 
+        "Results/Market/{0}{1}{2}/".format(
+            market, str(regressor).split("(")[0], interpolated))
 
-def RegressOnMarket(market, encoder, regressor, interpolate):
+def RegressOnMarket(market, encoder, model, interpolate):
     """ market is in the form of an airport code i.e. "LHR" 
     See AirportCodes.py for encapsulation of the strings """
 
     working_dir = defineWorkingDirectory()
     data_dir = defineDataDirectory(working_dir)
-    result_dir = defineResultDirectory(working_dir, market, interpolate, regressor)
+    result_dir = defineResultDirectory(working_dir, market, interpolate, model)
     ensure_dir(result_dir) # ensure directory for figures to be saved in
 
     print "Loading from CSV"
@@ -354,7 +362,6 @@ def RegressOnMarket(market, encoder, regressor, interpolate):
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
     
     print "Training the Model"
-    model = regressor(n_jobs=-1)
     model.fit(X_train, y_train)
 
     try:
@@ -377,11 +384,12 @@ def RegressOnMarket(market, encoder, regressor, interpolate):
         xlabel="TotalBKD Error (Predicted - Actual)",ylabel="Probability")
 
 def main():
-    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor, True)
-    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor, True)
-    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor, True)
-    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor, True)
-    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor, True)
+    # RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, AdaBoostRegressor(DecisionTreeRegressor(),n_estimators=300), True)
+    RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, GradientBoostingRegressor(), True)
+    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor(), True)
+    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor(), True)
+    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor(), True)
+    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor(), True)
     return
 
 if __name__ == '__main__':
