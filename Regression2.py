@@ -1,18 +1,41 @@
 import pandas as pd
 import numpy as np
 
+from sklearn.cross_validation import KFold
+
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
 
-def KFoldSplit(X, y, identifiers, n_folds):
-    pass
+
+def kFoldSplit(X, y, ids, n_folds):
+    """
+    args:
+        X: np.array of flight feature matricies
+        y: np.array of flight target vectors
+        identifiers: np.array of flt identifiers
+        n_folds: number of folds to split to KFold
+    """
+    n = len(X)
+    kf = KFold(n, n_folds=n_folds, shuffle=True)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = (None,) * 6
+    for train_index, test_index in kf:
+        for each_x, each_y, each_id in zip(X[train_index], y[train_index], ids[train_index]):
+            X_train = vStackMatrices(X_train, X[train_index])
+            y_train = hStackMatrices(y_train, y[train_index])
+            ids_train = vStackMatrices(ids_train, ids[train_index])
+
+        for each_x, each_y, each_id in zip(X[test_index], y[test_index], ids[test_index]):
+            X_test = vStackMatrices(X_test, each_x)
+            y_test = hStackMatrices(y_test, each_y)
+            ids_test = vStackMatrices(ids_test, each_id)
+        
+        yield X_train, y_train, X_test, y_test, ids_train, ids_test
 
 def encodeFlights(flights, interp_params, cat_encoding):
-    data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) 
-            for flt, flt_df in flights]
+    data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
     X, y, identifiers = zip(*data)
-    return X, y, identifiers
+    return np.array(X), np.array(y), np.array(identifiers)
 
 def encodeFlight(flt, df, interp_params, cat_encoding):
     """
@@ -235,6 +258,9 @@ def main():
     cat_encoding = (bin_size, date_reduction)
 
     x, y, i = encodeFlights(unique_flights, interp_params, cat_encoding)
+    foo = next(kFoldSplit(x, y, i, 3))
+    print foo[0]
+    print foo[4]
 
 if __name__ == '__main__':
     main()
