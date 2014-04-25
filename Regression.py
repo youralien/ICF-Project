@@ -52,7 +52,6 @@ def encodeFlight(flt, df):
     identifiers = None
 
     for bc, bc_df in sortedBCs(df.groupby('BC')):
-        enc_bc = encodeBookingClass(bc)
         keyday = -1 * bc_df['KEYDAY']
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
@@ -88,7 +87,6 @@ def encodeInterpolatedFlight(flt, df, start=-90, stop=0, num=31):
     identifiers = None
 
     for bc, bc_df in sortedBCs(df.groupby('BC')):
-        enc_bc = encodeBookingClass(bc)
         keyday = -1 * bc_df['KEYDAY']
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
@@ -103,7 +101,7 @@ def encodeInterpolatedFlight(flt, df, start=-90, stop=0, num=31):
         cap_interp.fill(float(cap.iget(0)))
         delta_bkd = np.diff(bkd_interp)
 
-        clf_interp = bkd_interp / cap_interp[0] #BROKEN
+        clf_interp = bkd_interp / cap_interp[0]
 
         # nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
         nums = (cap_interp[:-1], avail_interp[:-1], clf_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
