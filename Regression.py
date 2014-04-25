@@ -216,11 +216,27 @@ def oneHotDay(day):
     return vector
 
 def encodeBookingClass(bc):
-    """ Returns a 1-to-K or one-hot encoding of BC."""
+    """ Returns a various encodings of BC.
+    including OneHot or 1-K Methods and binning the rank
+    """
+    return oneHotBookingClass(bc, bin_size=2)
+
+def oneHotBookingClass(bc, bin_size=1):
+    """ Returns a binned 1-to-K or one-hot encoding of BC.
+    
+    bc: a booking class letter
+    bin_size: number of bc that fit into one bin
+    
+    if bin_size=1 (default), we have a true 1-K encoding
+    """
+    assert len(Utils.bc_hierarchy) % bin_size == 0, "Invalid Bin Size"
+
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
-    encoded_vector = np.zeros(len(Utils.bc_hierarchy))
-    encoded_vector[rank] = 1
-    return encoded_vector
+    
+    enc_vector = np.zeros(len(Utils.bc_hierarchy)/bin_size)
+    enc_vector[rank/bin_size] = 1
+
+    return enc_vector
 
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)
