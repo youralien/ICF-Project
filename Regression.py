@@ -95,7 +95,7 @@ def encodeInterpolatedFlight(flt, df):
         keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
         keyday, bkd, auth, avail, cap = filterDataForKeyDay(-90, keyday, bkd, auth, avail, cap)
 
-        keyday_interp = np.arange(-90, 1, 3)
+        keyday_interp = np.linspace(-90, 0, 31)
         bkd_interp, auth_interp, avail_interp, cap_interp = interpolate(keyday_interp, keyday, bkd, auth, avail, cap)
 
         delta_bkd = np.diff(bkd_interp)
@@ -114,7 +114,30 @@ def encodeInterpolatedFlight(flt, df):
 
         identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
 
+    bkd_lower = extractBKDLower(X, 30, -2)
+    X = colStackMatrices(X, bkd_lower)
+
     return X, y, identifiers 
+
+def extractBKDLower(X, skip, bkd_idx):
+    """ calculates BKD for BC lower in the hiearchy for all interpolated 
+    keydays and for all BC
+
+    X: Feature Set of a Flight Entity, presorted by BC hiearchy and KEYDAY
+    skip: number of rows between the first entries of adjacent
+        BCs
+    bkd_idx: column index of BKD for X feature set
+    """
+    m, n = X.shape
+    num_BC = m / skip
+    BC_by_rank = range(num_BC)
+    bkd_lower = np.zeros((m,1))
+
+    for bc_i in xrange(0,m,skip):
+        for i in xrange(0,skip):
+            bkd_lower[bc_i+i] = sum([X[r,bkd_idx] for r in xrange(bc_i+i+skip,m,skip)])
+
+    return bkd_lower
 
 def interpolate(keyday_vals, keyday, *args):
     interps = []
@@ -227,9 +250,9 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
     """
 
     # For column indicies, See encodeFlight and encodeInterpolatedFlight 
-    # in a line that says nums = (..., bkd, keyday)
-    KEYDAY_INDEX = -1 
-    BKD_INDEX = -2
+    # in a line that says nums = (..., bkd, keyday, bkd_lower)
+    KEYDAY_INDEX = -2 
+    BKD_INDEX = -3
     pred_minus_actual = [] # TOTALBKD
 
     if not X_test[0, KEYDAY_INDEX] < 0:
@@ -355,10 +378,10 @@ def RegressOnMarket(market, encoder, regressor, interpolate):
 
 def main():
     RegressOnMarket(AirportCodes.London, encodeInterpolatedFlight, RandomForestRegressor, True)
-    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor)
-    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor)
-    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor)
-    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor`)
+    # RegressOnMarket(AirportCodes.Bangkok, encodeInterpolatedFlight, RandomForestRegressor, True)
+    # RegressOnMarket(AirportCodes.Delhi, encodeInterpolatedFlight, RandomForestRegressor, True)
+    # RegressOnMarket(AirportCodes.Bahrain, encodeInterpolatedFlight, RandomForestRegressor, True)
+    # RegressOnMarket(AirportCodes.Frankfurt, encodeInterpolatedFlight, RandomForestRegressor, True)
     return
 
 if __name__ == '__main__':
