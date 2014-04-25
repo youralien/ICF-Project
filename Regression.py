@@ -18,6 +18,7 @@ from Visualizer import Visualizer
 from Network import Network
 from AirportCodes import AirportCodes
 
+
 def aggregateTrainTestSplit(X, y, ids, p):
     train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
     X_train, X_test, y_train, y_test, ids_train, ids_test = (None,) * 6
@@ -79,7 +80,7 @@ def encodeFlight(flt, df):
 
         identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
 
-    return X, y, identifiers 
+    return a
 
 def encodeInterpolatedFlight(flt, df):
     X = None
