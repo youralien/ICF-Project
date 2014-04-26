@@ -293,13 +293,28 @@ def scaleNums(X, vsplit):
         X: The transformed feature set, with numerical features scaled
     """
     
-    cats = X[:,:vsplit]
-    nums = X[:,vsplit:]
+    cats, nums = cats_nums_split(X, vsplit)
 
     scaler = preprocessing.StandardScaler().fit(nums)
     nums = scaler.transform(nums)
 
     return hStackMatrices(cats, nums)
+
+def cats_nums_split(X, vsplit):
+    """ Splits the feature matrix into categorical and numerical feature
+    matricies
+    args:
+        X: the m by n feature matrix, where m is the number of training examples
+           and n is the number of features
+        vsplit: an int which is the column index of where either the categorical 
+                features end or numerical features start.
+    returns:
+        a tuple (cats, nums) which are the categorical and numerical feature 
+        matrices
+    """
+    cats = X[:,:vsplit]
+    nums = X[:,vsplit:]
+    return cats, nums
 
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)

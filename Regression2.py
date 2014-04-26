@@ -288,13 +288,28 @@ def scaleNums(X, vsplit):
         X: The transformed feature set, with numerical features scaled
     """
     
-    cats = X[:,:vsplit]
-    nums = X[:,vsplit:]
+    cats, nums = cats_nums_split(X, vsplit)
 
     scaler = preprocessing.StandardScaler().fit(nums)
     nums = scaler.transform(nums)
 
     return hStackMatrices(cats, nums)
+
+def cats_nums_split(X, vsplit):
+    """ Splits the feature matrix into categorical and numerical feature
+    matricies
+    args:
+        X: the m by n feature matrix, where m is the number of training examples
+           and n is the number of features
+        vsplit: an int which is the column index of where either the categorical 
+                features end or numerical features start.
+    returns:
+        a tuple (cats, nums) which are the categorical and numerical feature 
+        matrices
+    """
+    cats = X[:,:vsplit]
+    nums = X[:,vsplit:]
+    return cats, nums
 
 def main():
     # Set parameters for loading the data
@@ -339,13 +354,13 @@ def main():
     return X_train, y_train, X_test, y_test, ids_train, ids_test
 
     features = {
-        "bkd_lower":-1,
-        "keyday":-7,
-        "bkd":-6,
-        "auth":-5,
-        "avail":-4,
-        "cap":-3,}
-        # "clf":-1}
+        "keyday":32,
+        "bkd":33,
+        "auth":34
+        "avail":35,
+        "cap":36, 
+        "clf":37
+        "bkd_lower":38}
 
     for i, (name, col) in enumerate(features.items()):
         if name == 'clf': 
