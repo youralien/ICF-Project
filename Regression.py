@@ -281,6 +281,26 @@ def stackMatrices(x, new_x, fun):
 
     return x
 
+def scaleNums(X, vsplit):
+    """
+    Scales the numerical part of the feature set
+    args:
+        X: the m by n feature matrix, where m is the number of training examples
+           and n is the number of features
+        vsplit: an int which is the column index of where either the categorical 
+                features end or numerical features start.
+    returns:
+        X: The transformed feature set, with numerical features scaled
+    """
+    
+    cats = X[:,:vsplit]
+    nums = X[:,vsplit:]
+
+    scaler = preprocessing.StandardScaler().fit(nums)
+    nums = scaler.transform(nums)
+
+    return hStackMatrices(cats, nums)
+
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)
     predictions = np.array(predictions)

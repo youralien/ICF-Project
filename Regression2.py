@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
+import thinkplot
 
+from sklearn import preprocessing
 from sklearn.cross_validation import KFold, train_test_split
+
+from sklearn.svm import SVR
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
 
-import thinkplot
+
 
 def kFoldSplit(X, y, ids, n_folds):
     """
@@ -272,6 +276,26 @@ def stackMatrices(x, new_x, fun):
 
     return x
 
+def scaleNums(X, vsplit):
+    """
+    Scales the numerical part of the feature set
+    args:
+        X: the m by n feature matrix, where m is the number of training examples
+           and n is the number of features
+        vsplit: an int which is the column index of where either the categorical 
+                features end or numerical features start.
+    returns:
+        X: The transformed feature set, with numerical features scaled
+    """
+    
+    cats = X[:,:vsplit]
+    nums = X[:,vsplit:]
+
+    scaler = preprocessing.StandardScaler().fit(nums)
+    nums = scaler.transform(nums)
+
+    return hStackMatrices(cats, nums)
+
 def main():
     # Set parameters for loading the data
     num_records = 'all'
@@ -304,15 +328,15 @@ def main():
     bin_size = 1
     date_reduction = -1
     cat_encoding = (bin_size, date_reduction)
+    cats_end = 32
+    nums_start = cats_end
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.99)
     
-    x, y = X_train, y_train
+    X_train = scaleNums(X_train, nums_start)
 
-
-    return x, y
-
+    return X_train, y_train, X_test, y_test, ids_train, ids_test
 
     features = {
         "bkd_lower":-1,
@@ -339,4 +363,4 @@ def main():
     # print foo[4]
 
 if __name__ == '__main__':
-    x, y = main()
+    nums, cats = main()
