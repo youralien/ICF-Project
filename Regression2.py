@@ -1,12 +1,13 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.cross_validation import KFold
+from sklearn.cross_validation import KFold, train_test_split
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
 
+import thinkplot
 
 def kFoldSplit(X, y, ids, n_folds):
     """
@@ -19,6 +20,7 @@ def kFoldSplit(X, y, ids, n_folds):
     n = len(X)
     kf = KFold(n, n_folds=n_folds, shuffle=True)
     X_train, y_train, X_test, y_test, ids_train, ids_test = (None,) * 6
+
     for train_index, test_index in kf:
         for each_x, each_y, each_id in zip(X[train_index], y[train_index], ids[train_index]):
             X_train = vStackMatrices(X_train, X[train_index])
@@ -31,6 +33,22 @@ def kFoldSplit(X, y, ids, n_folds):
             ids_test = vStackMatrices(ids_test, each_id)
         
         yield X_train, y_train, X_test, y_test, ids_train, ids_test
+
+def aggregateTrainTestSplit(X, y, ids, p):
+    train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
+    X_train, X_test, y_train, y_test, ids_train, ids_test = (None,) * 6
+
+    for each_x, each_y, each_id in zip(train_X, train_y, train_ids):
+        X_train = vStackMatrices(X_train, each_x)
+        y_train = hStackMatrices(y_train, each_y)
+        ids_train = vStackMatrices(ids_train, each_id)
+
+    for each_x, each_y, each_id in zip(test_X, test_y, test_ids):
+        X_test = vStackMatrices(X_test, each_x)
+        y_test = hStackMatrices(y_test, each_y)
+        ids_test = vStackMatrices(ids_test, each_id)
+
+    return X_train, y_train, X_test, y_test, ids_train, ids_test
 
 def encodeFlights(flights, interp_params, cat_encoding):
     data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
@@ -74,7 +92,17 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         y = hStackMatrices(y, delta_bkd)
         identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
 
-        return X, y, identifiers
+    skip = interp_params[2] - 1
+    bkd_lower = extractBKDLower(X, skip, -5)
+    X = colStackMatrices(X, bkd_lower)
+
+    # Return BC Y only
+    X = X[:skip,:]
+    y = y[:skip]
+    identifiers = identifiers[:skip]
+
+
+    return X, y, identifiers
 
 def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     start, stop, num_points = interp_params
@@ -93,6 +121,26 @@ def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     nums = np.column_stack(nums)
 
     return delta_bkd, nums
+
+def extractBKDLower(X, skip, bkd_idx):
+    """ calculates BKD for BC lower in the hiearchy for all interpolated 
+    keydays and for all BC
+
+    X: Feature Set of a Flight Entity, presorted by BC hiearchy and KEYDAY
+    skip: number of rows between the first entries of adjacent
+        BCs
+    bkd_idx: column index of BKD for X feature set
+    """
+    m, n = X.shape
+    num_BC = m / skip
+    BC_by_rank = range(num_BC)
+    bkd_lower = np.zeros((m,1))
+
+    for bc_i in xrange(0,m,skip):
+        for i in xrange(0,skip):
+            bkd_lower[bc_i+i] = sum([X[r,bkd_idx] for r in xrange(bc_i+i+skip,m,skip)])
+
+    return bkd_lower
 
 def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
     start, stop, num_points = interp_params
@@ -143,7 +191,7 @@ def encodeDate(date, date_reduction):
     is_weekend = [Utils.isWeekend(day)]
     
     if date_reduction == -1:
-        return one_hot_day + is_weekend
+        return np.hstack((one_hot_day, is_weekend))
     
     elif date_reduction == 0:
         return is_weekend
@@ -257,10 +305,38 @@ def main():
     date_reduction = -1
     cat_encoding = (bin_size, date_reduction)
 
-    x, y, i = encodeFlights(unique_flights, interp_params, cat_encoding)
-    foo = next(kFoldSplit(x, y, i, 3))
-    print foo[0]
-    print foo[4]
+    X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.99)
+    
+    x, y = X_train, y_train
+
+
+    return x, y
+
+
+    features = {
+        "bkd_lower":-1,
+        "keyday":-7,
+        "bkd":-6,
+        "auth":-5,
+        "avail":-4,
+        "cap":-3,}
+        # "clf":-1}
+
+    for i, (name, col) in enumerate(features.items()):
+        if name == 'clf': 
+            continue
+        thinkplot.SubPlot(2,3,i+1)
+        thinkplot.Scatter(x[:,col], y)
+        thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
+
+    thinkplot.Show()
+    
+
+
+    # foo = next(kFoldSplit(x, y, i, 3))
+    # print foo[0]
+    # print foo[4]
 
 if __name__ == '__main__':
-    main()
+    x, y = main()

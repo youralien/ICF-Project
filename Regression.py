@@ -1,13 +1,13 @@
 import os
-import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.cross_validation import train_test_split
+from sklearn.cross_validation import KFold, train_test_split
 
 import thinkstats2
 import thinkplot
@@ -18,6 +18,30 @@ from Visualizer import Visualizer
 from Network import Network
 from AirportCodes import AirportCodes
 
+def kFoldSplit(X, y, ids, n_folds):
+    """
+    args:
+        X: np.array of flight feature matricies
+        y: np.array of flight target vectors
+        identifiers: np.array of flt identifiers
+        n_folds: number of folds to split to KFold
+    """
+    n = len(X)
+    kf = KFold(n, n_folds=n_folds, shuffle=True)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = (None,) * 6
+
+    for train_index, test_index in kf:
+        for each_x, each_y, each_id in zip(X[train_index], y[train_index], ids[train_index]):
+            X_train = vStackMatrices(X_train, X[train_index])
+            y_train = hStackMatrices(y_train, y[train_index])
+            ids_train = vStackMatrices(ids_train, ids[train_index])
+
+        for each_x, each_y, each_id in zip(X[test_index], y[test_index], ids[test_index]):
+            X_test = vStackMatrices(X_test, each_x)
+            y_test = hStackMatrices(y_test, each_y)
+            ids_test = vStackMatrices(ids_test, each_id)
+        
+        yield X_train, y_train, X_test, y_test, ids_train, ids_test
 
 def aggregateTrainTestSplit(X, y, ids, p):
     train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
@@ -35,94 +59,76 @@ def aggregateTrainTestSplit(X, y, ids, p):
 
     return X_train, y_train, X_test, y_test, ids_train, ids_test
 
-
-def flightSplit(unique_flights, encoder):
-    flights = [encoder(flt, flt_df) for flt, flt_df in unique_flights]
-    X, y, identifiers = zip(*flights)
-
+def encodeFlights(flights, interp_params, cat_encoding):
+    data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
+    X, y, identifiers = zip(*data)
     return np.array(X), np.array(y), np.array(identifiers)
 
-def sortedBCs(groupby):
-    tups = [(bc, bc_df) for bc, bc_df in groupby]
-    return sorted(tups, key=lambda tup: Utils.compareBCs(tup[0]))
-
-def encodeFlight(flt, df):
+def encodeFlight(flt, df, interp_params, cat_encoding):
+    """
+    args:
+        interp_params: tuple of (start, stop, number_of_points) to use in
+                       interpolate
+        cat_encoding: tuple of (bin_size, date_reduction) specifying how 
+                      compressed the BC and day of week categorical features
+                      should be in the final feature matrix
+    returns:
+        tuple of (features, targets, flight IDs) suitable for use in training
+        and graph generation
+    """
     X = None
     y = None
     identifiers = None
+    bc_groupby = df.groupby('BC')
+    bc_groupby = sortBCGroupby(bc_groupby)
 
-    for bc, bc_df in sortedBCs(df.groupby('BC')):
-        keyday = -1 * bc_df['KEYDAY']
+    for bc, bc_df in bc_groupby:
+        # Unpack relevant columns of the dataframe
+        keyday = -1.0 * bc_df['KEYDAY']
         bkd = bc_df['BKD']
         auth = bc_df['AUTH']
         avail = bc_df['AVAIL']
         cap = bc_df['CAP']
-        
-        keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
 
-        delta_bkd = np.diff(bkd)
-        delta_t = np.diff(keyday)
-
-        keyday, cap, bkd, auth, avail, delta_t, delta_bkd = filterDataForKeyDay(
-            -90, keyday[:-1], cap[:-1], bkd[:-1], auth[:-1], avail[:-1], delta_t, delta_bkd)
-
-        nums = (cap, auth, avail, delta_t, bkd, keyday)
-        nums = np.column_stack(nums)
-        cats = encodeCategoricalData(flt, bc)
-        cats = np.tile(cats, (len(nums), 1)) 
-
+        # Stack the numerical and categorical data into a feature matrix
+        delta_bkd, nums = encodeNumericalData(
+            interp_params, keyday, bkd, auth, avail, cap)
+        cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
         features = hStackMatrices(cats, nums)
 
+        # Save the new features in the X and y sets
         X = vStackMatrices(X, features)
-
         y = hStackMatrices(y, delta_bkd)
-
-        identifiers = vStackMatrices(identifiers, np.column_stack(flt+(bc,)))
-
-    return a
-
-def encodeInterpolatedFlight(flt, df):
-    X = None
-    y = None
-    identifiers = None
-
-    start, stop, num = (-90, 0, 31)
-
-    for bc, bc_df in sortedBCs(df.groupby('BC')):
-        keyday = -1 * bc_df['KEYDAY']
-        bkd = bc_df['BKD']
-        auth = bc_df['AUTH']
-        avail = bc_df['AVAIL']
-        cap = bc_df['CAP']
-        keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
-        keyday, bkd, auth, avail, cap = filterDataForKeyDay(start, keyday, bkd, auth, avail, cap)
-
-        keyday_interp = np.linspace(start, stop, num)
-        bkd_interp, auth_interp, avail_interp = interpolate(keyday_interp, keyday, bkd, auth, avail)
-        cap_interp = np.zeros(len(keyday_interp))
-        cap_interp.fill(float(cap.iget(0)))
-        delta_bkd = np.diff(bkd_interp)
-
-        clf_interp = bkd_interp / cap_interp[0]
-
-        # nums = (cap_interp[:-1], auth_interp[:-1], avail_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
-        nums = (cap_interp[:-1], avail_interp[:-1], clf_interp[:-1], bkd_interp[:-1], keyday_interp[:-1])
-        nums = np.column_stack(nums)
-        cats = encodeCategoricalData(flt, bc)
-        cats = np.tile(cats, (len(nums), 1)) 
-
-        features = hStackMatrices(cats, nums)
-
-        X = vStackMatrices(X, features)
-
-        y = hStackMatrices(y, delta_bkd)
-
         identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
 
-    bkd_lower = extractBKDLower(X, num-1, -2)
+    skip = interp_params[2] - 1
+    bkd_lower = extractBKDLower(X, skip, -5)
     X = colStackMatrices(X, bkd_lower)
 
-    return X, y, identifiers 
+    # Return BC Y only
+    X = X[:skip,:]
+    y = y[:skip]
+    identifiers = identifiers[:skip]
+
+    return X, y, identifiers
+
+def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
+    start, stop, num_points = interp_params
+    keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
+    keyday, bkd, auth, avail, cap = filterDataForKeyDay(
+        start, keyday, bkd, auth, avail, cap)
+    keyday, bkd, auth, avail, cap = interpolateFlight(
+        interp_params, keyday, bkd, auth, avail, cap)
+
+    # Create any other features
+    delta_bkd = np.diff(bkd)
+    clf = bkd / cap
+
+    # Stack the numerical data into a feature matrix
+    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
+    nums = np.column_stack(nums)
+
+    return delta_bkd, nums
 
 def extractBKDLower(X, skip, bkd_idx):
     """ calculates BKD for BC lower in the hiearchy for all interpolated 
@@ -144,15 +150,16 @@ def extractBKDLower(X, skip, bkd_idx):
 
     return bkd_lower
 
-def interpolate(keyday_vals, keydays, *args):
-    interps = [np.interp(keyday_vals, keydays, arg, left=0) for arg in args]
-    return interps
+def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
+    start, stop, num_points = interp_params
+    keyday_vals = np.linspace(start, stop, num_points)
+    bkd, auth, avail = interpolate(
+        keyday_vals, keyday, bkd, auth, avail)
 
-def filterDataForKeyDay(time, keydays, *args):
-    index = next(i for i, k in enumerate(keydays) if k > time, keydays[0])
-    filtered_keydays = keydays[index:]
-    filtered_args = [arg[index:] for arg in args]
-    return [filtered_keydays] + filtered_args
+    cap = float(cap.iget(0))
+    cap = np.array([cap] * len(keyday_vals))
+
+    return keyday_vals, bkd, auth, avail, cap
 
 def encodeCategoricalData(flt, bc, num_length, cat_encoding):
     """
@@ -176,23 +183,6 @@ def encodeCategoricalData(flt, bc, num_length, cat_encoding):
 
     return features
 
-def vStackMatrices(x, new_x):
-    return stackMatrices(x, new_x, np.vstack)
-
-def hStackMatrices(x, new_x):
-    return stackMatrices(x, new_x, np.hstack)
-
-def colStackMatrices(x, new_x):
-    return stackMatrices(x, new_x, np.column_stack)
-
-def stackMatrices(x, new_x, fun):
-    if x is None:
-        x = new_x
-    else: 
-        x = fun((x, new_x))
-
-    return x
-
 def encodeDate(date, date_reduction):
     """
     args:
@@ -209,12 +199,12 @@ def encodeDate(date, date_reduction):
     is_weekend = [Utils.isWeekend(day)]
     
     if date_reduction == -1:
-        return one_hot_day + is_weekend
+        return np.hstack((one_hot_day, is_weekend))
     
     elif date_reduction == 0:
         return is_weekend
     
-    elif date_reduction == 1
+    elif date_reduction == 1:
         return one_hot_day
         
 def oneHotDay(day):
@@ -249,7 +239,8 @@ def oneHotBookingClass(bc, bin_size=1):
     
     if bin_size=1 (default), we have a true 1-K encoding
     """
-    assert len(Utils.bc_hierarchy) % bin_size == 0, "Invalid Bin Size"
+    assert len(Utils.bc_hierarchy) % bin_size == 0, 
+        "Error: Bin Size must evenly divide into the number of booking classes"
 
     cabin, rank = Utils.mapBookingClassToCabinHierarchy(bc)
     
@@ -257,6 +248,38 @@ def oneHotBookingClass(bc, bin_size=1):
     enc_vector[rank/bin_size] = 1
 
     return enc_vector
+
+def sortBCGroupby(groupby):
+    tups = [(bc, bc_df) for bc, bc_df in groupby]
+    return sorted(tups, key=lambda tup: Utils.compareBCs(tup[0]))
+
+def interpolate(keyday_vals, keydays, *args):
+    interps = [np.interp(keyday_vals, keydays, arg, left=0) for arg in args]
+
+    return interps
+
+def filterDataForKeyDay(time, keydays, *args):
+    index = next((i for i, k in enumerate(keydays) if k > time))
+    filtered_keydays = keydays[index:]
+    filtered_args = [arg[index:] for arg in args]
+    return [filtered_keydays] + filtered_args
+
+def vStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.vstack)
+
+def hStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.hstack)
+
+def colStackMatrices(x, new_x):
+    return stackMatrices(x, new_x, np.column_stack)
+
+def stackMatrices(x, new_x, fun):
+    if x is None:
+        x = new_x
+    else: 
+        x = fun((x, new_x))
+
+    return x
 
 def meanAbsoluteError(ground_truth, predictions):
     ground_truth = np.array(ground_truth)
@@ -308,10 +331,9 @@ def cmp_deltaBKD_curve(y_test, y_pred, X_test, identifiers_test, result_dir):
             index, the total number of flight/bc pairs 
     """
 
-    # For column indicies, See encodeFlight and encodeInterpolatedFlight 
-    # in a line that says nums = (..., bkd, keyday, bkd_lower)
-    KEYDAY_INDEX = -2 
-    BKD_INDEX = -3
+    # Feature Indicies Determined in encodeFlight
+    KEYDAY_INDEX = 32
+    BKD_INDEX = 33
     pred_minus_actual = [] # TOTALBKD
 
     if not X_test[0, KEYDAY_INDEX] < 0:
@@ -437,8 +459,21 @@ def RegressOnMarket(market, encoder, model, interpolate):
 
     print "Formatting Features and Targets into train and test sets"
     X, y, ids = flightSplit(unique_flights, encoder)
-    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.50)
     
+    x = X_train
+    y = y_train
+
+    keyday, bkd, auth, avail, cap, clf = (-6, -5, -4, -3, -2, -1)
+
+    for i, var in enumerate([keyday, bkd, auth, avail, cap, clf]):
+        print x.shape
+        print y.shape
+    #     thinkplot.SubPlot(2,3,i+1)
+    #     thinkplot.Scatter(x[:,var], y)
+
+    assert False, "Testing Sequence Over"
+
     print "Training the Model"
     model.fit(X_train, y_train)
 
