@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import thinkplot
 
-from sklearn import preprocessing
+from sklearn.preprocessing import StandardScaler
 from sklearn.cross_validation import KFold, train_test_split
 
 from sklearn.svm import SVR
@@ -276,26 +276,57 @@ def stackMatrices(x, new_x, fun):
 
     return x
 
-def scaleNums(X, vsplit):
+def scale_trans_nums(scaler, X, vsplit):
     """
-    Scales the numerical part of the feature set
+    Scale transforms the numerical part of the feature set
     args:
+        scaler: StandardScaler object
         X: the m by n feature matrix, where m is the number of training examples
            and n is the number of features
         vsplit: an int which is the column index of where either the categorical 
                 features end or numerical features start.
+        kwargs: to modify behavior of sklearn's StandardScaler object
     returns:
-        X: The transformed feature set, with numerical features scaled
+        scaler: StandardScaler object
+        X: the transformed feature set, with numerical features scaled
     """
     
     cats, nums = cats_nums_split(X, vsplit)
 
-    scaler = preprocessing.StandardScaler().fit(nums)
-    nums = scaler.transform(nums)
+    try:
+        # Has the scaler been fitted yet?
+        _ = scaler.mean_
+        
+        # Fitted: Yes
+        nums = scaler.transform(nums)
+    except AttributeError:
+        # Fitted: No
+        nums = scaler.fit_transform(nums)
 
-    return hStackMatrices(cats, nums)
+    return scaler, hStackMatrices(cats, nums)
 
-def cats_nums_split(X, vsplit):
+def scale_invtrans_nums(scaler, X, vsplit):
+    """
+    inverse Scale transforms the numerical part of the transformed feature set
+    args:
+        scaler: StandardScaler object
+        X: the m by n feature matrix, where m is the number of training examples
+           and n is the number of features
+        vsplit: an int which is the column index of where either the categorical 
+                features end or numerical features start.
+        kwargs: to modify behavior of sklearn's StandardScaler object
+    returns:
+        scaler: StandardScaler object
+        X: the original feature set, with numerical features inverse scaled
+    """
+    
+    cats, nums = cats_nums_split(X, vsplit)
+
+    nums = scaler.inverse_transform(nums)
+
+    return scaler, hStackMatrices(cats, nums)
+
+def cats_nums_split(X,vsplit):
     """ Splits the feature matrix into categorical and numerical feature
     matricies
     args:
@@ -347,25 +378,28 @@ def main():
     nums_start = cats_end
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
-    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.99)
+    X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
     
-    X_train = scaleNums(X_train, nums_start)
+    scaler = StandardScaler()
+    scaler, X_train = scale_trans_nums(scaler, X_train, nums_start)
+    scaler, y_train = scale_trans_nums(scaler, y_train, nums_start)
+    scaler, X_test = scale_trans_nums(scaler, X_test, nums_start)
+    scaler, y_test = scale_trans_nums(scaler, y_test, nums_start)
+    
 
-    return X_train, y_train, X_test, y_test, ids_train, ids_test
+    return scaler, X_train, y_train, X_test, y_test, ids_train, ids_test
 
     features = {
         "keyday":32,
         "bkd":33,
-        "auth":34
+        "auth":34,
         "avail":35,
         "cap":36, 
-        "clf":37
+        "clf":37,
         "bkd_lower":38}
 
     for i, (name, col) in enumerate(features.items()):
-        if name == 'clf': 
-            continue
-        thinkplot.SubPlot(2,3,i+1)
+        thinkplot.SubPlot(3,3,i+1)
         thinkplot.Scatter(x[:,col], y)
         thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
 
@@ -378,4 +412,6 @@ def main():
     # print foo[4]
 
 if __name__ == '__main__':
-    nums, cats = main()
+    scaler, X_train, y_train, X_test, y_test, ids_train, ids_test = main()
+
+a
