@@ -4,14 +4,55 @@ import thinkplot
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.cross_validation import KFold, train_test_split
-
 from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
 
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
 
+def sequentialForwardFeatureSelection(model, kf, n_features):
+    """
+        model: RandomForest, etc.
+        kf: kFoldSplit generator object
+    """
+    model_accuracy = -1
+    selected_features = []
+    omitted_features = range(n_features)
 
+    while True:
+        scores_top = np.zeros(len(omitted_features))
+        for X_train, y_train, X_test, y_test, ids_train, ids_test in kf:
+            scores = np.array([])
+
+            # For each feature, train a model with the selected features
+            # and get an accuracy score
+            for feature_index in omitted_features:
+                feature_indices = selected_features + [feature_index]
+                train_features = X_train[:, feature_indices]
+                test_features = X_test[:, feature_indices]
+
+                model.fit(train_features, y_train) # Should make sure that repeatedly fitting a model gives a fresh fit
+                score = model.score(test_features, y_test)
+                scores = np.append(scores, score)
+
+            scores_top += scores
+
+
+        # Average all of the accuracy scores and select the feature that
+        # improved performance most. Add it to selected_features. If all of the
+        # model_accuracies are lower than the last one, break the loop
+        best_feature_index = omitted_features.pop(scores_top.argmax())
+        if scores_top.max() < model_accuracy:
+            break
+        else:
+            model_accuracy = scores_top.max()
+            selected_features.append(best_feature_index)
+        
+
+    # return the selected features vector
+    return selected_features, model_accuracy
+            
 
 def kFoldSplit(X, y, ids, n_folds):
     """
@@ -27,15 +68,15 @@ def kFoldSplit(X, y, ids, n_folds):
 
     for train_index, test_index in kf:
         for each_x, each_y, each_id in zip(X[train_index], y[train_index], ids[train_index]):
-            X_train = vStackMatrices(X_train, X[train_index])
-            y_train = hStackMatrices(y_train, y[train_index])
-            ids_train = vStackMatrices(ids_train, ids[train_index])
+            X_train = vStackMatrices(X_train, each_x)
+            y_train = hStackMatrices(y_train, each_y)
+            ids_train = vStackMatrices(ids_train, each_id)
 
         for each_x, each_y, each_id in zip(X[test_index], y[test_index], ids[test_index]):
             X_test = vStackMatrices(X_test, each_x)
             y_test = hStackMatrices(y_test, each_y)
             ids_test = vStackMatrices(ids_test, each_id)
-        
+
         yield X_train, y_train, X_test, y_test, ids_train, ids_test
 
 def aggregateTrainTestSplit(X, y, ids, p):
@@ -57,6 +98,8 @@ def aggregateTrainTestSplit(X, y, ids, p):
 def encodeFlights(flights, interp_params, cat_encoding):
     data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
     X, y, identifiers = zip(*data)
+
+    print 'encodeFlights:', len(y), len(identifiers)
     return np.array(X), np.array(y), np.array(identifiers)
 
 def encodeFlight(flt, df, interp_params, cat_encoding):
@@ -73,7 +116,7 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
     """
     X = None
     y = None
-    identifiers = None
+    ids = None
     bc_groupby = df.groupby('BC')
     bc_groupby = sortBCGroupby(bc_groupby)
 
@@ -88,25 +131,31 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         # Stack the numerical and categorical data into a feature matrix
         delta_bkd, nums = encodeNumericalData(
             interp_params, keyday, bkd, auth, avail, cap)
-        cats = encodeCategoricalData(flt, bc, len(nums), cat_encoding)
+        cats = encodeCategoricalData(flt, bc, len(delta_bkd), cat_encoding)
         features = hStackMatrices(cats, nums)
+        identifiers = encodeIdentifier(flt, bc)
+
 
         # Save the new features in the X and y sets
         X = vStackMatrices(X, features)
         y = hStackMatrices(y, delta_bkd)
-        identifiers = vStackMatrices(identifiers, np.array(flt+(bc,)))
+        ids = vStackMatrices(ids, identifiers)
+        
+    # skip = interp_params[2] - 1
+    # bkd_lower = extractBKDLower(X, skip, -5)
+    # X = colStackMatrices(X, bkd_lower)
 
-    skip = interp_params[2] - 1
-    bkd_lower = extractBKDLower(X, skip, -5)
-    X = colStackMatrices(X, bkd_lower)
+    # # Return BC Y only
+    # X = X[:skip,:]
+    # y = y[:skip]
+    # identifiers = identifiers[:skip]
 
-    # Return BC Y only
-    X = X[:skip,:]
-    y = y[:skip]
-    identifiers = identifiers[:skip]
+    return X, y, ids
 
+def encodeIdentifier(flt, bc):
+    identifier = np.array(flt + (bc,))
+    return identifier
 
-    return X, y, identifiers
 
 def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     start, stop, num_points = interp_params
@@ -125,6 +174,17 @@ def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     nums = np.column_stack(nums)
 
     return delta_bkd, nums
+
+def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
+    start, stop, num_points = interp_params
+    keyday_vals = np.linspace(start, stop, num_points)
+    bkd, auth, avail = interpolate(
+        keyday_vals, keyday, bkd, auth, avail)
+
+    cap = float(cap.iget(0))
+    cap = np.array([cap] * len(keyday_vals))
+
+    return keyday_vals, bkd, auth, avail, cap
 
 def extractBKDLower(X, skip, bkd_idx):
     """ calculates BKD for BC lower in the hiearchy for all interpolated 
@@ -145,17 +205,6 @@ def extractBKDLower(X, skip, bkd_idx):
             bkd_lower[bc_i+i] = sum([X[r,bkd_idx] for r in xrange(bc_i+i+skip,m,skip)])
 
     return bkd_lower
-
-def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
-    start, stop, num_points = interp_params
-    keyday_vals = np.linspace(start, stop, num_points)
-    bkd, auth, avail = interpolate(
-        keyday_vals, keyday, bkd, auth, avail)
-
-    cap = float(cap.iget(0))
-    cap = np.array([cap] * len(keyday_vals))
-
-    return keyday_vals, bkd, auth, avail, cap
 
 def encodeCategoricalData(flt, bc, num_length, cat_encoding):
     """
@@ -342,7 +391,7 @@ def cats_nums_split(X,vsplit):
     nums = X[:,vsplit:]
     return cats, nums
 
-def main():
+def mainRyan():
     # Set parameters for loading the data
     num_records = 'all'
     csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
@@ -368,14 +417,13 @@ def main():
     start = -90
     stop = 0
     num_points = 31
-
     interp_params = (start, stop, num_points)
 
     bin_size = 1
     date_reduction = -1
     cat_encoding = (bin_size, date_reduction)
-    cats_end = 32
-    nums_start = cats_end
+
+    num_folds = 3
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
@@ -404,14 +452,53 @@ def main():
         thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
 
     thinkplot.Show()
+
+
+def mainKyle():
+    # Set parameters for loading the data
+    num_records = 'all'
+    csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
+
+    # Set parameters for filtering the data
+    market = AirportCodes.London
+    orgs=[AirportCodes.Dubai, market]
+    dests=[AirportCodes.Dubai, market]
+    cabins=["Y"]
+
+    # Get the data, filter it, and group it by flight
+    print "Loading " + csvfile
+    f = FeatureFilter(num_records, csvfile)
+
+    print "Filtering"
+    data = f.getDrillDown(orgs=orgs, dests=dests, cabins=cabins)
+
+    print "Grouping by flight"
+    unique_flights = f.getUniqueFlights(data)
+
+    # Encode the flights
+    print "Encoding flight data"
+    start = -90
+    stop = 0
+    num_points = 31
+    interp_params = (start, stop, num_points)
+
+    bin_size = 1
+    date_reduction = -1
+    cat_encoding = (bin_size, date_reduction)
+
+    num_folds = 3
+
+    X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
+
+    # X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.8)
+
+    print 'Generating k-fold'
+    kf = kFoldSplit(X, y, ids, num_folds)
+
     
-
-
-    # foo = next(kFoldSplit(x, y, i, 3))
-    # print foo[0]
-    # print foo[4]
+    print 'Selecting features'
+    print sequentialForwardFeatureSelection(KNeighborsRegressor(), kf, 38)
 
 if __name__ == '__main__':
-    scaler, X_train, y_train, X_test, y_test, ids_train, ids_test = main()
-
-a
+    scaler, X_train, y_train, X_test, y_test, ids_train, ids_test = mainRyan()
+    # mainKyle()
