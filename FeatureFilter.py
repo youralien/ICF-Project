@@ -19,6 +19,7 @@ class FeatureFilter():
 
         self._filteredByOrgDes = None
         self._filteredByUniqueFlights = None
+        self._filteredByUniqueBookings = None
         self._filteredByUniqueFlightsAndBookings = None
 
     def getUniqueOrgDes(self, df=None):
@@ -50,6 +51,15 @@ class FeatureFilter():
             self._filteredByUniqueFlights = self._filterUniqueFlights(df)
 
         return self._filteredByUniqueFlights
+
+    def getUniqueBookings(self, df=None):
+        if not isinstance(df, pd.DataFrame):
+            df = self.entities
+
+        if self._filteredByUniqueBookings is None:
+            self._filteredByUniqueBookings = self._filterUniqueBookings(df)
+
+        return self._filteredByUniqueBookings
 
     def getUniqueFlightsAndBookings(self, df=None):
         """
@@ -148,6 +158,9 @@ class FeatureFilter():
                  flight objects (groups passengers on a per-flight basis)
         """
         return df.groupby(['DATE', 'FLT', 'ORG', 'DES'], sort=False)
+
+    def _filterUniqueBookings(self, df):
+        return df.groupby(['BC'], sort=False)
 
     def _filterUniqueFlightsAndBookings(self, df):
         """
