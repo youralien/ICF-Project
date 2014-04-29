@@ -14,8 +14,8 @@ class Utils():
     days_of_week = ["Sunday","Monday","Tuesday","Wednesday",
                     "Thursday","Friday","Saturday"]
                     
-    bc_hierarchy = [(1,'Y','Y'), 
-                    (2,'H','Y'), 
+    bc_hierarchy = [(1,'Y','Y'),
+                    (2,'H','Y'),
                     (3,'M','Y'),
                     (4,'L','Y'),
                     (5,'B','Y'),
@@ -38,6 +38,7 @@ class Utils():
                     (4,'I','J'),
                     (5,'P','J'),
                     (6,'R','J')]
+
 
     @staticmethod
     def compareBCs(bc):
