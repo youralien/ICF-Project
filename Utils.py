@@ -72,9 +72,8 @@ class Utils():
             list of tuples of (booking class, rank) associated with the given 
             cabin
         """
-        with open('Data/BC_Hierarchy.csv', 'r') as bc_file:
-            reader = csv.reader(bc_file)
-            return [(bc, r) for r, bc, c in reader if c == cabin]
+
+        return [(bc, r) for r, bc, c in Utils.bc_hierarchy if c == cabin]
 
     @staticmethod
     def mapRankToBookingClass(rank, cabin):
