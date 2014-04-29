@@ -8,7 +8,7 @@ class DataManager():
 
     def addColumn(self, table, col_name, col_type):
         args = (table, col_name, col_type)
-        sql = 'ALTER TABLE %s ADD COLUMN %s %s'%(table, col_name, col_type)
+        sql = 'ALTER TABLE %s ADD COLUMN %s %s'%args
         c = self.conn.cursor()
         c.execute(sql)
         self.conn.commit()
