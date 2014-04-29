@@ -24,26 +24,34 @@ def bookingClassTicketFrequencies(data):
         print flight_df
         break    
 
-def CDFofCLF(norm_data, title, xlabel, ylabel):
+def CDFofCLF(data, title, xlabel=None, ylabel=None):
 	"""
 	Displays a Cumulative Distribution Function (CDF) of 
 	Cabin Load Factor (CLF)
 	args:
-		norm_data: normalized dataframe for aggregate or separate markets. 
+		data: dataframe for aggregate or separate markets. 
 		title: plot title, a string
 		xlabel: plot xlabel, a string
 		ylabel, plot ylabel, a string
-	"""
-	unique_flights = f.getUniqueFlights(norm_data)
 
-	CLFs = [d.iget(0) for g, d in unique_flights.TOTALBKD]
+	example:
+	>>> CDFofCLF(data, 'Economy CLF for all Markets from January - March 2013')
+	"""
+	isNormalized = if type(data['TOTALBKD'].iget(0)) is float else False
+
+	flights = f.getUniqueFlights(data)
+
+	if isNormalized:
+		CLFs = [d.iget(0) for g, d in flights.TOTALBKD]
+	else:
+		CLFs = [float(totalbkd.iget(0))/cap.iget(0) for (g, totalbkd),(g,cap) in zip(flights.TOTALBKD, flights.CAP)]
 
 	cdf_of_clf = thinkstats2.MakeCdfFromList(CLFs)
 	
 	thinkplot.Cdf(cdf_of_clf)
-	thinkplot.Show(	title='Economy CLF for all Markets from January - March 2013',
-               		xlabel='Cabin Load Factor',
-                   	ylabel='CDF')
+	thinkplot.Show(	title=title,
+               		xlabel='Cabin Load Factor' if xlabel is None else xlabel,
+                   	ylabel='CDF' if ylabel is None else ylabel)
 
 def main():
     num_records = 1000
