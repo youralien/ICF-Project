@@ -88,19 +88,31 @@ def aggregateTrainTestSplit(X, y, ids, p):
         p: a float percentage of the training set size
     """
     train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
-    X_train, X_test, y_train, y_test, ids_train, ids_test = (None,) * 6
+    
+    X_train, y_train, ids_train = aggregate(train_X, train_y, train_ids)
 
-    for each_x, each_y, each_id in zip(train_X, train_y, train_ids):
-        X_train = vStackMatrices(X_train, each_x)
-        y_train = hStackMatrices(y_train, each_y)
-        ids_train = vStackMatrices(ids_train, each_id)
-
-    for each_x, each_y, each_id in zip(test_X, test_y, test_ids):
-        X_test = vStackMatrices(X_test, each_x)
-        y_test = hStackMatrices(y_test, each_y)
-        ids_test = vStackMatrices(ids_test, each_id)
+    X_test, y_test, ids_test = aggregate(test_X, test_y, test_ids)
 
     return X_train, y_train, X_test, y_test, ids_train, ids_test
+
+def aggregate(X, y, ids):
+    """
+    aggregate the flight features, targets, and ids  
+    args:
+        X: np.array of flight feature matricies
+        y: np.array of flight target vectors
+        ids: np.array of flt identifiers
+    returns:
+        X, y, and ids as aggregated 2 dimensional arrays
+    """
+    X_tmp, y_tmp, ids_tmp = (None, ) * 3
+
+    for each_X, each_y, each_id in zip(X, y, ids):
+        X_tmp = vStackMatrices(X_tmp, each_X)
+        y_tmp = hStackMatrices(y_tmp, each_y)
+        ids_tmp = vStackMatrices(ids_tmp, each_id)
+
+    return X_tmp, y_tmp, ids_tmp
 
 def encodeFlights(flights, interp_params, cat_encoding):
     data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
@@ -148,9 +160,9 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         y = hStackMatrices(y, delta_bkd)
         ids = vStackMatrices(ids, identifiers)
         
-    # skip = interp_params[2] - 1
-    # bkd_lower = extractBKDLower(X, skip, -5)
-    # X = colStackMatrices(X, bkd_lower)
+    skip = interp_params[2] - 1
+    bkd_lower = extractBKDLower(X, skip, -5)
+    X = colStackMatrices(X, bkd_lower)
 
     # # Return BC Y only
     # X = X[:skip,:]
@@ -163,7 +175,6 @@ def encodeIdentifier(flt, bc):
     identifier = np.array(flt + (bc,))
     return identifier
 
-
 def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
     start, stop, num_points = interp_params
     keyday, bkd, auth, avail = Utils.sortByIndex(keyday, bkd, auth, avail)
@@ -174,10 +185,12 @@ def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
 
     # Create any other features
     delta_bkd = np.diff(bkd)
-    clf = bkd / cap
+    norm_bkd = bkd / cap
+    norm_auth = auth / cap
+    norm_avail = avail / cap
 
     # Stack the numerical data into a feature matrix
-    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, clf]]
+    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, norm_bkd, norm_auth, norm_avail]]
     nums = np.column_stack(nums)
 
     return delta_bkd, nums
@@ -404,7 +417,7 @@ def mainRyan():
     csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
 
     # Set parameters for filtering the data
-    market = None
+    market = AirportCodes.London
     orgs=[AirportCodes.Dubai, market]
     dests=[AirportCodes.Dubai, market]
     cabins=["Y"]
@@ -421,7 +434,7 @@ def mainRyan():
 
     # Encode the flights
     print "Encoding flight data"
-    start = -300
+    start = -90
     stop = 0
     num_points = 31
     interp_params = (start, stop, num_points)
@@ -433,14 +446,15 @@ def mainRyan():
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
     
-    cats_end = 32
-    nums_start = cats_end
+    return X_train, y_train, X_test, y_test, ids_train, ids_test
+    # cats_end = 32
+    # nums_start = cats_end
 
-    scaler = StandardScaler()
-    scaler, X_train = scale_trans_nums(scaler, X_train, nums_start)
-    scaler, X_test = scale_trans_nums(scaler, X_test, nums_start)
+    # scaler = StandardScaler()
+    # scaler, X_train = scale_trans_nums(scaler, X_train, nums_start)
+    # scaler, X_test = scale_trans_nums(scaler, X_test, nums_start)
 
-    return scaler, X_train, y_train, X_test, y_test, ids_train, ids_test
+    # return scaler, X_train, y_train, X_test, y_test, ids_train, ids_test
 
 
 def mainKyle():
@@ -487,5 +501,5 @@ def mainKyle():
     print sequentialForwardFeatureSelection(KNeighborsRegressor(), kf, 38)
 
 if __name__ == '__main__':
-    scaler, X_train, y_train, X_test, y_test, ids_train, ids_test = mainRyan()
+    res = mainRyan()
     # mainKyle()
