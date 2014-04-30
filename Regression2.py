@@ -25,7 +25,7 @@ def sequentialForwardFeatureSelection(model, kf, n_features):
         for X_train, y_train, X_test, y_test, ids_train, ids_test in kf:
             scores = np.array([])
 
-            # For each feature, train a model with the selected features
+            # For each feature, train a model woith the selected features
             # and get an accuracy score
             for feature_index in omitted_features:
                 feature_indices = selected_features + [feature_index]
@@ -59,7 +59,7 @@ def kFoldSplit(X, y, ids, n_folds):
     args:
         X: np.array of flight feature matricies
         y: np.array of flight target vectors
-        identifiers: np.array of flt identifiers
+        ids: np.array of flt identifiers
         n_folds: number of folds to split to KFold
     """
     n = len(X)
@@ -80,6 +80,13 @@ def kFoldSplit(X, y, ids, n_folds):
         yield X_train, y_train, X_test, y_test, ids_train, ids_test
 
 def aggregateTrainTestSplit(X, y, ids, p):
+    """
+    args:
+        X: np.array of flight feature matricies
+        y: np.array of flight target vectors
+        ids: np.array of flt identifiers
+        p: a float percentage of the training set size
+    """
     train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
     X_train, X_test, y_train, y_test, ids_train, ids_test = (None,) * 6
 
@@ -397,7 +404,7 @@ def mainRyan():
     csvfile = "Data/BKGDAT_ZeroTOTALBKD.txt"
 
     # Set parameters for filtering the data
-    market = AirportCodes.London
+    market = None
     orgs=[AirportCodes.Dubai, market]
     dests=[AirportCodes.Dubai, market]
     cabins=["Y"]
@@ -414,7 +421,7 @@ def mainRyan():
 
     # Encode the flights
     print "Encoding flight data"
-    start = -90
+    start = -300
     stop = 0
     num_points = 31
     interp_params = (start, stop, num_points)
@@ -423,35 +430,17 @@ def mainRyan():
     date_reduction = -1
     cat_encoding = (bin_size, date_reduction)
 
-    num_folds = 3
-
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.90)
     
+    cats_end = 32
+    nums_start = cats_end
+
     scaler = StandardScaler()
     scaler, X_train = scale_trans_nums(scaler, X_train, nums_start)
-    scaler, y_train = scale_trans_nums(scaler, y_train, nums_start)
     scaler, X_test = scale_trans_nums(scaler, X_test, nums_start)
-    scaler, y_test = scale_trans_nums(scaler, y_test, nums_start)
-    
 
     return scaler, X_train, y_train, X_test, y_test, ids_train, ids_test
-
-    features = {
-        "keyday":32,
-        "bkd":33,
-        "auth":34,
-        "avail":35,
-        "cap":36, 
-        "clf":37,
-        "bkd_lower":38}
-
-    for i, (name, col) in enumerate(features.items()):
-        thinkplot.SubPlot(3,3,i+1)
-        thinkplot.Scatter(x[:,col], y)
-        thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
-
-    thinkplot.Show()
 
 
 def mainKyle():
@@ -489,8 +478,6 @@ def mainKyle():
     num_folds = 3
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
-
-    # X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.8)
 
     print 'Generating k-fold'
     kf = kFoldSplit(X, y, ids, num_folds)

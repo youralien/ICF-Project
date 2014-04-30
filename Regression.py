@@ -8,6 +8,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.cross_validation import KFold, train_test_split
+from sklearn.externals import joblib
 
 import thinkstats2
 import thinkplot
@@ -499,14 +500,6 @@ def RegressOnMarket(market, encoder, model, interpolate):
     x = X_train
     y = y_train
 
-    keyday, bkd, auth, avail, cap, clf = (-6, -5, -4, -3, -2, -1)
-
-    for i, var in enumerate([keyday, bkd, auth, avail, cap, clf]):
-        print x.shape
-        print y.shape
-    #     thinkplot.SubPlot(2,3,i+1)
-    #     thinkplot.Scatter(x[:,var], y)
-
     assert False, "Testing Sequence Over"
 
     print "Training the Model"
@@ -519,7 +512,7 @@ def RegressOnMarket(market, encoder, model, interpolate):
             print "\nRegression Coeficients: [ ..., auth, avail, (deltat), bkd, keyday]"+str(model.coef_)
         except AttributeError:
             print "\nCannot express weights"
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_test)in,
 
     print "Calculating Errors Saving figures"
     pred_minus_actual, num_uniqueids = cmp_deltaBKD_curve(y_test, y_pred, X_test, ids_test, result_dir)

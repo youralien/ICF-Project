@@ -1,9 +1,13 @@
+import pickle
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 import thinkstats2
 import thinkplot
 
+from Regression2 import encodeFlights, aggregateTrainTestSplit
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 
@@ -47,11 +51,12 @@ def bookingClassTicketFrequencies(f, data, cabin):
     plt.show()
 
 
-def CDFofCLF(data, title, xlabel=None, ylabel=None):
+def CDFofCLF(f, data, title, xlabel=None, ylabel=None):
 	"""
 	Displays a Cumulative Distribution Function (CDF) of 
 	Cabin Load Factor (CLF)
 	args:
+        f: FeatureFilter object
 		data: dataframe for aggregate or separate markets. 
 		title: plot title, a string
 		xlabel: plot xlabel, a string
@@ -60,7 +65,7 @@ def CDFofCLF(data, title, xlabel=None, ylabel=None):
 	example:
 	>>> CDFofCLF(data, 'Economy CLF for all Markets from January - March 2013')
 	"""
-	isNormalized = if type(data['TOTALBKD'].iget(0)) is float else False
+	isNormalized = True if type(data['TOTALBKD'].iget(0)) is float else False
 
 	flights = f.getUniqueFlights(data)
 
@@ -76,20 +81,70 @@ def CDFofCLF(data, title, xlabel=None, ylabel=None):
                		xlabel='Cabin Load Factor' if xlabel is None else xlabel,
                    	ylabel='CDF' if ylabel is None else ylabel)
 
-def main():
+def inputsVsDeltaBKD(f, data):
+    """ Makes scatter plots of quantitative input features versus deltaBKD 
+    args:
+        f: FeatureFilter object
+        data: dataframe for aggregate or separate markets
+    """
+    print "Grouping by flight"
+    flights = f.getUniqueFlights(data)
+
+    print "Encoding flight data"
+    start = -300
+    stop = 0
+    num_points = 31
+    interp_params = (start, stop, num_points)
+
+    bin_size = 1
+    date_reduction = -1
+    cat_encoding = (bin_size, date_reduction)
+
+    X, y, ids = encodeFlights(flights, interp_params, cat_encoding)
+    
+    X, _, y, _, _, _ = aggregateTrainTestSplit(X, y, ids, 1.0)
+    print X.shape
+
+    cats_end = 32
+    nums_start = cats_end
+
+    features = {
+        "keyday":32,
+        "bkd":33,
+        "auth":34,
+        "avail":35,
+        "cap":36, 
+        "clf":37,}
+        # "bkd_lower":38}
+
+    for i, (name, col) in enumerate(features.items()):
+        thinkplot.SubPlot(2,3,i+1)
+        thinkplot.Scatter(X[:,col], y)
+        thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
+
+    thinkplot.Show()
+
+def main_from_csv():
     num_records = 'all'
     csvfile = 'Data/BKGDAT_ZeroTOTALBKD.txt'
     cabin = 'Y'
 
-    print 'Loading data'
+    print 'Loading data from CSV'
     f = FeatureFilter(num_records, csvfile)
 
     print 'Filtering'
     data = f.getDrillDown(cabins=[cabin])
 
-    bookingClassTicketFrequencies(f, data, cabin)
+    print 'Pickling to file'
+    with file('Serialized/feature_filter.pkl', 'w') as file_obj:
+        pickle.dump(f,file_obj,pickle.HIGHEST_PROTOCOL)
+    data.to_pickle('Serialized/bkgdat_economy.pkl')
+
+
+def main_from_pkl():
+    print 'Loading data from PKL'
+    data = pd.load('Serialized/bkgdat_economy.pkl')
     
 
-
 if __name__ == '__main__':
-    main()
+    main_from_csv()
