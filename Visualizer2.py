@@ -7,9 +7,10 @@ import pandas as pd
 import thinkstats2
 import thinkplot
 
-from Regression2 import encodeFlights, aggregateTrainTestSplit
+from Regression2 import encodeFlights, aggregate
 from FeatureFilter import FeatureFilter
 from Utils import Utils
+from AirportCodes import AirportCodes
 
 def bookingClassTicketFrequencies(f, data, cabin):
     print 'Grouping into unique flight/booking class combinations'
@@ -87,11 +88,13 @@ def inputsVsDeltaBKD(f, data):
         f: FeatureFilter object
         data: dataframe for aggregate or separate markets
     """
-    print "Grouping by flight"
+    isNormalized = True if type(data['TOTALBKD'].iget(0)) is float else False
+
+    print 'Grouping by flight'
     flights = f.getUniqueFlights(data)
 
-    print "Encoding flight data"
-    start = -300
+    print 'Encoding flight data'
+    start = -90
     stop = 0
     num_points = 31
     interp_params = (start, stop, num_points)
@@ -102,49 +105,61 @@ def inputsVsDeltaBKD(f, data):
 
     X, y, ids = encodeFlights(flights, interp_params, cat_encoding)
     
-    X, _, y, _, _, _ = aggregateTrainTestSplit(X, y, ids, 1.0)
-    print X.shape
+    print 'Aggregating Flights'
+    X, y, ids = aggregate(X, y, ids)
 
     cats_end = 32
     nums_start = cats_end
 
-    features = {
-        "keyday":32,
-        "bkd":33,
-        "auth":34,
-        "avail":35,
-        "cap":36, 
-        "clf":37,}
-        # "bkd_lower":38}
+    if isNormalized:
+        features = {
+            'keyday':32,
+            'bkd normalized':33,
+            'auth normalized':34,
+            'avail normalized':35,
+            'cap':36, 
+            'bkd_lower normalized':37
+            }
+        targetlabel='delta bkd normalized'
+    else:
+        features = {
+            'keyday':32,
+            'bkd':33,
+            'auth':34,
+            'avail':35,
+            'cap':36, 
+            'bkd_lower':37
+            }
+        targetlabel='delta bkd'
 
     for i, (name, col) in enumerate(features.items()):
         thinkplot.SubPlot(2,3,i+1)
-        thinkplot.Scatter(X[:,col], y)
-        thinkplot.Config(xlabel='{}'.format(name), ylabel='delta bkd')
+        thinkplot.Scatter(X[:,col],y)
+        thinkplot.Config(xlabel='{}'.format(name), ylabel=targetlabel)
 
     thinkplot.Show()
 
-def main_from_csv():
+def main():
+    normalized = True
+    bkgdat = 'Data/BKGDAT_ZeroTOTALBKD.txt'
+    bkgdat_norm = 'Data/NormExceptKeyday_BKGDAT_ZeroTOTALBKD.txt'
     num_records = 'all'
-    csvfile = 'Data/BKGDAT_ZeroTOTALBKD.txt'
-    cabin = 'Y'
+    csvfile =  bkgdat_norm if normalized else bkgdat
+    market = AirportCodes.Bangkok
+    cabins = ['Y']
 
     print 'Loading data from CSV'
     f = FeatureFilter(num_records, csvfile)
 
     print 'Filtering'
-    data = f.getDrillDown(cabins=[cabin])
+    if market is None:
+        data = f.getDrillDown(cabins=cabins)
+    else:
+        orgs = [AirportCodes.Dubai, market]
+        dests = [AirportCodes.Dubai, market]
+        data = f.getDrillDown(orgs=orgs, dests=dests, cabins=cabins) 
 
-    print 'Pickling to file'
-    with file('Serialized/feature_filter.pkl', 'w') as file_obj:
-        pickle.dump(f,file_obj,pickle.HIGHEST_PROTOCOL)
-    data.to_pickle('Serialized/bkgdat_economy.pkl')
-
-
-def main_from_pkl():
-    print 'Loading data from PKL'
-    data = pd.load('Serialized/bkgdat_economy.pkl')
-    
+    inputsVsDeltaBKD(f, data)
 
 if __name__ == '__main__':
-    main_from_csv()
+    main()
