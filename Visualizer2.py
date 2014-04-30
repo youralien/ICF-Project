@@ -1,5 +1,3 @@
-import pickle
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -139,18 +137,18 @@ def inputsVsDeltaBKD(f, data):
 
     thinkplot.Show()
 
-def main():
-    normalized = True
-    bkgdat = 'Data/BKGDAT_ZeroTOTALBKD.txt'
-    bkgdat_norm = 'Data/NormExceptKeyday_BKGDAT_ZeroTOTALBKD.txt'
-    num_records = 'all'
-    csvfile =  bkgdat_norm if normalized else bkgdat
-    market = AirportCodes.Bangkok
-    cabins = ['Y']
+def ScatterFeaturesTargets(f, market):
+    """
+    NOTE: Frankfurt is less Dense than say, Bahrain. Thus Scatter is going to 
+    look less dense and different
 
-    print 'Loading data from CSV'
-    f = FeatureFilter(num_records, csvfile)
-
+    Bahrain: 1226 flights
+    Frankfurt: 200 flights
+    Delhi: 358 flights
+    London: ???
+    Bangkok: ???
+    Aggregate: 10842 flights
+    """ 
     print 'Filtering'
     if market is None:
         data = f.getDrillDown(cabins=cabins)
@@ -162,4 +160,14 @@ def main():
     inputsVsDeltaBKD(f, data)
 
 if __name__ == '__main__':
-    main()
+    normalized = False
+    bkgdat = 'Data/BKGDAT_ZeroTOTALBKD.txt'
+    bkgdat_norm = 'Data/NormExceptKeyday_BKGDAT_ZeroTOTALBKD.txt'
+    num_records = 'all'
+    csvfile =  bkgdat_norm if normalized else bkgdat
+    cabins = ['Y']
+
+    print 'Loading data from CSV'
+    f = FeatureFilter(num_records, csvfile)
+
+    ScatterFeaturesTargets(f, None)
