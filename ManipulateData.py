@@ -29,6 +29,55 @@ def RemoveQuotationMarks(oldfilename, newfilename):
 	oldfile.close()
 	newfile.close()
 
+def NormalizeEverythingButKeyday(oldfilename, newfilename):
+	oldfile = open(oldfilename, 'r')
+	newfile = open(newfilename, 'w')
+
+	# Do the Normalization Division Occurs
+	precision = 2
+
+	# Don't touch Header Data Labels
+	header = True
+	index = 1
+	for oldline in oldfile:
+		if header:
+			header = False
+			newfile.write(oldline)
+			continue
+
+		tokens = oldline.strip().split(',')
+		date = tokens[0]
+		flt = tokens[1]
+		org = tokens[2]
+		des = tokens[3]
+		cap = float(tokens[4])
+		bc = tokens[5]
+		bkd = int(tokens[6])
+		avail = int(tokens[7])
+		auth = int(tokens[8])
+		keyday = int(tokens[9])
+		totalbkd = int(tokens[10])
+		
+		if cap == 0:
+			continue
+
+		flight = tuple(tokens[:4])
+
+		norm_bkd = round(bkd / cap, precision)
+		norm_avail = round(avail / cap, precision)
+		norm_auth = round(auth / cap, precision)
+		norm_totalbkd = round(totalbkd / cap, precision)
+		
+		new_tokens = tokens[:6 ]+ [str(norm_bkd), str(norm_avail), str(norm_auth), str(keyday), str(norm_totalbkd)]
+		newline = ','.join(new_tokens) + '\n'
+		newfile.write(newline)
+
+		print index
+		index += 1
+
+	oldfile.close()
+	newfile.close()
+
 def NormalizeData(oldfilename, newfilename):
 	oldfile = open(oldfilename, 'r')
 	
@@ -159,5 +208,5 @@ def RemoveTotalBookedZeroFlights(oldfilename, newfilename):
 	newfile.close()
 
 if __name__ == "__main__":
-	RemoveQuotationMarks('Data/BKGDAT_Filtered.txt', 'Data/BKGDAT_MOAR_Filtered.txt')
-	
+	# RemoveQuotationMarks('Data/BKGDAT_Filtered.txt', 'Data/BKGDAT_MOAR_Filtered.txt')
+	NormalizeEverythingButKeyday('Data/BKGDAT_ZeroTOTALBKD.txt', 'Data/NormExceptKeyday_BKGDAT_ZeroTOTALBKD.txt')
