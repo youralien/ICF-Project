@@ -159,11 +159,17 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         X = vStackMatrices(X, features)
         y = hStackMatrices(y, delta_bkd)
         ids = vStackMatrices(ids, identifiers)
-        
+    
     skip = interp_params[2] - 1
-    bkd_lower = extractBKDLower(X, skip, -5)
+    
+    bkd_idx = 33
+    bkd_lower = extractBKDLower(X, skip, bkd_idx)
     X = colStackMatrices(X, bkd_lower)
 
+    norm_bkd_idx = 37
+    norm_bkd_lower = extractBKDLower(X, skip, norm_bkd_idx)
+    X = colStackMatrices(X, norm_bkd_lower)
+   
     # # Return BC Y only
     # X = X[:skip,:]
     # y = y[:skip]
@@ -185,12 +191,9 @@ def encodeNumericalData(interp_params, keyday, bkd, auth, avail, cap):
 
     # Create any other features
     delta_bkd = np.diff(bkd)
-    norm_bkd = bkd / cap
-    norm_auth = auth / cap
-    norm_avail = avail / cap
 
     # Stack the numerical data into a feature matrix
-    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap, norm_bkd, norm_auth, norm_avail]]
+    nums = [each[:-1] for each in [keyday, bkd, auth, avail, cap]]
     nums = np.column_stack(nums)
 
     return delta_bkd, nums
