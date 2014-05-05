@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.neighbors import KNeighborsRegressor
 
 import thinkstats2
 import thinkplot
@@ -9,6 +10,7 @@ from Regression2 import encodeFlights, aggregate
 from FeatureFilter import FeatureFilter
 from Utils import Utils
 from AirportCodes import AirportCodes
+from regression3 import mainRyan, regress, Error
 
 def bookingClassTicketFrequencies(f, data, cabin):
     print 'Grouping into unique flight/booking class combinations'
@@ -159,6 +161,58 @@ def ScatterFeaturesTargets(f, market):
 
     inputsVsDeltaBKD(f, data)
 
+def CDFofBkdAtEachKeyDayError(bkd_error_cumsum, interp_params):
+    """
+    args:
+        bkd_error_cumsum: a m (num ids) x n (num keydays) matrix of bkd error at
+                          each keyday
+        interp_params: (start, stop, num_points)
+    """
+    start, stop, n_keydays = interp_params
+
+    keydays = np.linspace(start, stop, n_keydays)
+
+    cdfs = [thinkstats2.MakeCdfFromList(bkd_error_cumsum[:,j] for j in range(n_keydays))]
+
+    for i in range(n_keydays):
+        thinkplot.Cdf(cdfs[i])
+        thinkplot.Save(title='Error CDF of bkd at keyday {}'.format(keydays[i]),
+                       xlabel='bkd error (bkd predicted - bkd actual)',
+                       ylabel='CDF')
+
+def CDFofErrorAtEachKeyDay(errors, interp_params):
+    """
+    args:
+        errors: error of a particular target value at each keyday
+        interp_params: (start, stop, num_points) which is fed into np linspace
+    """
+    start, stop, n_keydays = interp_params
+
+    keydays = np.linspace(start, stop, n_keydays)
+
+    assert len(keydays) == n_keydays
+
+    print errors[:, 1].shape
+    cdfs = [thinkstats2.MakeCdfFromList(errors[:,j]) for j in range(n_keydays)]
+    percentiles = [(cdf.Percentile(2.5), cdf.Percentile(50), cdf.Percentile(97.5)) for cdf in cdfs]
+    fifth, fiftieth, ninetyfifth = zip(*percentiles)
+
+    fig, ax = plt.subplots(1)
+    ax.plot(keydays, fiftieth, label='50th percentile')
+    ax.fill_between(keydays, fifth, ninetyfifth, facecolor='gray', alpha=0.5, label='Inner 90% error')
+
+    ax.set_xlabel('keydays')
+    ax.set_ylabel('bkd error (bkd predicted - bkd actual)')
+    ax.legend(loc='lower left')
+
+
+    fig.show()
+    # for i in range(n_keydays):
+    #     thinkplot.Cdf(cdfs[i])
+    #     thinkplot.Save(title='Error CDF of bkd at keyday {}'.format(keydays[i]),
+    #                    xlabel='bkd error (bkd predicted - bkd actual)',
+    #                    ylabel='CDF')
+
 if __name__ == '__main__':
     normalized = False
     bkgdat = 'Data/BKGDAT_ZeroTOTALBKD.txt'
@@ -169,5 +223,8 @@ if __name__ == '__main__':
 
     print 'Loading data from CSV'
     f = FeatureFilter(num_records, csvfile)
-
-    ScatterFeaturesTargets(f, None)
+    res = mainRyan()
+    X_train, y_train, X_test, y_test, ids_train, ids_test, interp_params, cat_encoding = res
+    y_test, y_pred = regress(KNeighborsRegressor(), res)
+    y_pred_cumsum, y_real_cumsum = Error.bkd_at_each_keyday(y_test, y_pred, ids_test, interp_params)
+    CDFofErrorAtEachKeyDay(y_pred_cumsum - y_real_cumsum, interp_params)
