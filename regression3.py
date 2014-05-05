@@ -439,9 +439,9 @@ def mainRyan():
 
     # Encode the flights
     print "Encoding flight data"
-    start = -15
+    start = -90
     stop = 0
-    num_points = 15
+    num_points = 31
     interp_params = (start, stop, num_points)
     
     bin_size = 3
@@ -449,7 +449,6 @@ def mainRyan():
     cat_encoding = (bin_size, date_reduction)
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
-    print 'yearrrrghhh', y[0].shape, num_points
     X_train, y_train, X_test, y_test, ids_train, ids_test = aggregateTrainTestSplit(X, y, ids, 0.75)
 
     return X_train, y_train, X_test, y_test, ids_train, ids_test, interp_params, cat_encoding
@@ -486,22 +485,42 @@ class Error:
         y_real_cumsum = None
         
         for i in xrange(len(ids_test)):
-            
-            y_real_this_flt = y_test[(i)*num_points:(i+1)*num_points]
+
             y_pred_this_flt = y_pred[(i)*num_points:(i+1)*num_points]
+            y_real_this_flt = y_test[(i)*num_points:(i+1)*num_points]
             
-            print np.array([np.cumsum(y_real_this_flt)]).shape, np.array([np.cumsum(y_pred_this_flt)]).shape
-            
+            y_pred_cumsum = vStackMatrices(y_pred_cumsum, np.array([np.cumsum(y_pred_this_flt)]))             
             y_real_cumsum = vStackMatrices(y_real_cumsum, np.array([np.cumsum(y_real_this_flt)]))
-            y_pred_cumsum = vStackMatrices(y_pred_cumsum, np.array([np.cumsum(y_pred_this_flt)])) 
             
-            print y_real_cumsum.shape, y_pred_cumsum.shape
-            print ""
+        return y_pred_cumsum, y_real_cumsum
+
+
+    @staticmethod
+    def deltabkd_at_each_keyday(y_test, y_pred, ids_test, interp_params):
+        """
+        args:
+            y_pred:
+            y_test:
+            interp_params:
+        """
     
-        return y_real_cumsum, y_pred_cumsum
+        start, stop, num_points = interp_params
+        
+        y_pred_mat = None
+        y_real_mat = None
+        
+        for i in xrange(len(ids_test)):
+
+            y_pred_this_flt = y_pred[(i)*num_points:(i+1)*num_points]
+            y_real_this_flt = y_test[(i)*num_points:(i+1)*num_points]
+            
+            y_pred_mat = vStackMatrices(y_pred_mat, np.array(y_pred_this_flt))             
+            y_real_mat = vStackMatrices(y_real_mat, np.array(y_real_this_flt))
+            
+        return y_pred_mat, y_real_mat
 
 if __name__ == '__main__':
     res = mainRyan()
     X_train, y_train, X_test, y_test, ids_train, ids_test, interp_params, cat_encoding = res
     y_test, y_pred = regress(KNeighborsRegressor(), res)
-    X_train, y_train, X_test, y_test, ids_train, ids_test, interp_params, cat_encoding = res
+    y_pred_cumsum, y_real_cumsum = Error.bkd_at_each_keyday(y_test, y_pred, ids_test, interp_params)
