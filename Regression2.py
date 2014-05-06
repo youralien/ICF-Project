@@ -16,24 +16,41 @@ def sequentialForwardFeatureSelection(model, kf, n_features):
         model: RandomForest, etc.
         kf: kFoldSplit generator object
     """
-    model_accuracy = -1
+    model_accuracies = []
     selected_features = []
+    feature_history = np.zeros((n_features, n_features))
     omitted_features = range(n_features)
+    sub_iter = 1
 
-    while True:
+    for i in range(n_features):
+        print "iteration", i
+        sub_iter = 1
+
         scores_top = np.zeros(len(omitted_features))
         for X_train, y_train, X_test, y_test, ids_train, ids_test in kf:
+            print "    sub-iter", sub_iter
+            sub_iter += 1
+            sub_sub_iter = 1
+
             scores = np.array([])
 
             # For each feature, train a model woith the selected features
             # and get an accuracy score
             for feature_index in omitted_features:
+                print "        sub-sub-iter", sub_sub_iter
+                sub_sub_iter += 1
+
+                if i == 0:
+                    feature_indices = [feature_index]
+                else:
+                    feature_indices
                 feature_indices = selected_features + [feature_index]
                 train_features = X_train[:, feature_indices]
                 test_features = X_test[:, feature_indices]
 
-                model.fit(train_features, y_train) # Should make sure that repeatedly fitting a model gives a fresh fit
-                score = model.score(test_features, y_test)
+                new_model = model()
+                new_model.fit(train_features, y_train) # Should make sure that repeatedly fitting a model gives a fresh fit
+                score = new_model.score(test_features, y_test)
                 scores = np.append(scores, score)
 
             scores_top += scores
@@ -43,15 +60,16 @@ def sequentialForwardFeatureSelection(model, kf, n_features):
         # improved performance most. Add it to selected_features. If all of the
         # model_accuracies are lower than the last one, break the loop
         best_feature_index = omitted_features.pop(scores_top.argmax())
-        if scores_top.max() < model_accuracy:
-            break
-        else:
-            model_accuracy = scores_top.max()
-            selected_features.append(best_feature_index)
+        model_accuracies.append(scores_top.max())
+
+        if i != 0:
+            feature_history[i, :] = feature_history[i-1, :]
+        feature_history[i, best_feature_index] = 1
+        selected_features.append(best_feature_index)
         
 
     # return the selected features vector
-    return selected_features, model_accuracy
+    return feature_history, model_accuracies
             
 
 def kFoldSplit(X, y, ids, n_folds):
@@ -88,9 +106,7 @@ def aggregateTrainTestSplit(X, y, ids, p):
         p: a float percentage of the training set size
     """
     train_X, test_X, train_y, test_y, train_ids, test_ids = train_test_split(X, y, ids, train_size=p)
-    
     X_train, y_train, ids_train = aggregate(train_X, train_y, train_ids)
-
     X_test, y_test, ids_test = aggregate(test_X, test_y, test_ids)
 
     return X_train, y_train, X_test, y_test, ids_train, ids_test
@@ -118,7 +134,6 @@ def encodeFlights(flights, interp_params, cat_encoding):
     data = [encodeFlight(flt, flt_df, interp_params, cat_encoding) for flt, flt_df in flights]
     X, y, identifiers = zip(*data)
 
-    print 'encodeFlights:', len(y), len(identifiers)
     return np.array(X), np.array(y), np.array(identifiers)
 
 def encodeFlight(flt, df, interp_params, cat_encoding):
@@ -160,15 +175,15 @@ def encodeFlight(flt, df, interp_params, cat_encoding):
         y = hStackMatrices(y, delta_bkd)
         ids = vStackMatrices(ids, identifiers)
     
-    skip = interp_params[2] - 1
+    # skip = interp_params[2] - 1
     
-    bkd_idx = 33
-    bkd_lower = extractBKDLower(X, skip, bkd_idx)
-    X = colStackMatrices(X, bkd_lower)
+    # bkd_idx = 33
+    # bkd_lower = extractBKDLower(X, skip, bkd_idx)
+    # X = colStackMatrices(X, bkd_lower)
 
-    norm_bkd_idx = 37
-    norm_bkd_lower = extractBKDLower(X, skip, norm_bkd_idx)
-    X = colStackMatrices(X, norm_bkd_lower)
+    # norm_bkd_idx = 37
+    # norm_bkd_lower = extractBKDLower(X, skip, norm_bkd_idx)
+    # X = colStackMatrices(X, norm_bkd_lower)
    
     # # Return BC Y only
     # X = X[:skip,:]
@@ -208,6 +223,11 @@ def interpolateFlight(interp_params, keyday, bkd, auth, avail, cap):
     cap = np.array([cap] * len(keyday_vals))
 
     return keyday_vals, bkd, auth, avail, cap
+
+def interpolate(keyday_vals, keydays, *args):
+    interps = [np.interp(keyday_vals, keydays, arg, left=0) for arg in args]
+
+    return interps
 
 def extractBKDLower(X, skip, bkd_idx):
     """ calculates BKD for BC lower in the hiearchy for all interpolated 
@@ -319,11 +339,6 @@ def oneHotBookingClass(bc, bin_size=1):
 def sortBCGroupby(groupby):
     tups = [(bc, bc_df) for bc, bc_df in groupby]
     return sorted(tups, key=lambda tup: Utils.compareBCs(tup[0]))
-
-def interpolate(keyday_vals, keydays, *args):
-    interps = [np.interp(keyday_vals, keydays, arg, left=0) for arg in args]
-
-    return interps
 
 def filterDataForKeyDay(time, keydays, *args):
     index = next((i for i, k in enumerate(keydays) if k > time))
@@ -488,21 +503,24 @@ def mainKyle():
     num_points = 31
     interp_params = (start, stop, num_points)
 
-    bin_size = 1
-    date_reduction = -1
+    bin_size = 3
+    date_reduction = 0
     cat_encoding = (bin_size, date_reduction)
 
     num_folds = 3
 
     X, y, ids = encodeFlights(unique_flights, interp_params, cat_encoding)
 
+    _, num_features = X[0].shape
+
     print 'Generating k-fold'
     kf = kFoldSplit(X, y, ids, num_folds)
 
     
     print 'Selecting features'
-    print sequentialForwardFeatureSelection(KNeighborsRegressor(), kf, 38)
+    model = KNeighborsRegressor
+    print sequentialForwardFeatureSelection(model, kf, num_features)
 
 if __name__ == '__main__':
-    res = mainRyan()
-    # mainKyle()
+    # res = mainRyan()
+    mainKyle()

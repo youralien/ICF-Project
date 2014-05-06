@@ -137,6 +137,64 @@ def inputsVsDeltaBKD(f, data):
 
     thinkplot.Show()
 
+def inputsVsBKD(f, data):
+    """ Makes scatter plots of quantitative input features versus deltaBKD 
+    args:
+        f: FeatureFilter object
+        data: dataframe for aggregate or separate markets
+    """
+    isNormalized = True if type(data['TOTALBKD'].iget(0)) is float else False
+
+    print 'Grouping by flight'
+    flights = f.getUniqueFlights(data)
+
+    print 'Encoding flight data'
+    start = -90
+    stop = 0
+    num_points = 31
+    interp_params = (start, stop, num_points)
+
+    bin_size = 1
+    date_reduction = -1
+    cat_encoding = (bin_size, date_reduction)
+
+    X, y, ids = encodeFlights(flights, interp_params, cat_encoding)
+    
+    print 'Aggregating Flights'
+    X, y, ids = aggregate(X, y, ids)
+
+    cats_end = 32
+    nums_start = cats_end
+
+    if isNormalized:
+        features = {
+            'keyday':32,
+            'bkd normalized':33,
+            'auth normalized':34,
+            'avail normalized':35,
+            'cap':36
+            }
+        targetlabel='delta bkd normalized'
+    else:
+        features = {
+            'keyday':32,
+            'bkd':33,
+            'auth':34,
+            'avail':35,
+            'cap':36
+            }
+        targetlabel='delta bkd'
+
+    for i, (name, col) in enumerate(features.items()):
+        thinkplot.SubPlot(2,3,i+1)
+        if name == 'bkd':
+            thinkplot.Scatter(X[:-1, col], X[1:, col])
+            thinkplot.Config(xlabel='{}'.format(name), ylabel='bkd autocorrelation')
+        else:
+            thinkplot.Scatter(X[:,col],X[:, features['bkd']])
+            thinkplot.Config(xlabel='{}'.format(name), ylabel=targetlabel)
+
+
 def ScatterFeaturesTargets(f, market):
     """
     NOTE: Frankfurt is less Dense than say, Bahrain. Thus Scatter is going to 
@@ -170,4 +228,4 @@ if __name__ == '__main__':
     print 'Loading data from CSV'
     f = FeatureFilter(num_records, csvfile)
 
-    ScatterFeaturesTargets(f, None)
+    inputsVsBKD(f, f.entities)
