@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
 
 import thinkstats2
@@ -190,9 +193,6 @@ def CDFofErrorAtEachKeyDay(errors, interp_params):
 
     keydays = np.linspace(start, stop, n_keydays)
 
-    assert len(keydays) == n_keydays
-
-    print errors[:, 1].shape
     cdfs = [thinkstats2.MakeCdfFromList(errors[:,j]) for j in range(n_keydays)]
     percentiles = [(cdf.Percentile(2.5), cdf.Percentile(50), cdf.Percentile(97.5)) for cdf in cdfs]
     fifth, fiftieth, ninetyfifth = zip(*percentiles)
@@ -207,11 +207,69 @@ def CDFofErrorAtEachKeyDay(errors, interp_params):
 
 
     fig.show()
-    # for i in range(n_keydays):
-    #     thinkplot.Cdf(cdfs[i])
-    #     thinkplot.Save(title='Error CDF of bkd at keyday {}'.format(keydays[i]),
-    #                    xlabel='bkd error (bkd predicted - bkd actual)',
-    #                    ylabel='CDF')
+
+def TotalBKDErrorComparison(errors, interp_params):
+    """
+    args:
+        errors: error of a particular target value at each keyday
+        interp_params: (start, stop, num_points) which is fed into np linspace
+    """
+    start, stop, n_keydays = interp_params
+
+    keydays = np.linspace(start, stop, n_keydays)
+
+    totalbkd_cdf = thinkstats2.MakeCdfFromList(errors[:,-1])
+
+    return totalbkd_cdf
+
+def bc_bars_base(y_cumsum):
+    """
+    args:
+        y_cumsum: a sumcum deltabkd vector (either predict or actual)
+    """
+    totalbkd_vector = y_cumsum[:,-1]
+    assert len(ids_test) == len(totalbkd_vector)
+    
+    bcs = {bc: 0 for (bc, r) in Utils.mapCabinToBookingClasses('Y')}
+    
+    for totalbkd, ids in zip(totalbkd_vector, ids_test):
+        bc = ids[-1]
+        bcs[bc] += totalbkd
+
+    denom = sum(totalbkd_vector)
+    
+    for bc in bcs:
+        bcs[bc] /= denom
+
+    ks, vs = zip(*bcs.items())
+    ks, vs = zip(*sorted(zip(ks, vs), key=lambda tup: Utils.compareBCs(tup[0])))
+    indices = np.arange(len(ks))
+
+    return ks, vs, indices
+
+def bc_bars(y_pred_cumsum, y_real_cumsum):
+    """
+    args:
+        y_pred_cumsum: a sumcum deltabkd vector predict 
+        y_real_cumsum: a sumcum deltabkd vector actual
+    """
+    ks, vs_pred, indices = bc_bars_base(y_pred_cumsum)
+    ks, vs_real, indices = bc_bars_base(y_real_cumsum)
+
+    width = 0.35
+
+    fig, ax = plt.subplots()
+    rects_pred = ax.bar(indices, vs_pred, width, color='y')
+    rects_real = ax.bar(indices+width, vs_real, width, color='g')
+        
+    ax.set_ylabel('Percent of Total Booked')
+    ax.set_title('Booking Class Ticketing Distribution - Economy Cabin')
+    ax.set_xticks(indices + width/2.0)
+    ax.set_xticklabels(ks)
+    ax.legend( (rects_pred[0], rects_real[0]), ('Predicted', 'Actual'))
+
+    plt.grid()
+    plt.show()
 
 if __name__ == '__main__':
     normalized = False
@@ -225,6 +283,27 @@ if __name__ == '__main__':
     f = FeatureFilter(num_records, csvfile)
     res = mainRyan()
     X_train, y_train, X_test, y_test, ids_train, ids_test, interp_params, cat_encoding = res
-    y_test, y_pred = regress(KNeighborsRegressor(), res)
-    y_pred_cumsum, y_real_cumsum = Error.bkd_at_each_keyday(y_test, y_pred, ids_test, interp_params)
-    CDFofErrorAtEachKeyDay(y_pred_cumsum - y_real_cumsum, interp_params)
+    
+
+
+    learners = [KNeighborsRegressor(n_neighbors=8), RandomForestRegressor(n_estimators=20, n_jobs=-1), Ridge(), GradientBoostingRegressor(n_estimators=100)]
+    labels = ['K-nearest neighbors', 'random forest', 'ridge', 'gradient boosting']
+    cdfs = []
+    for learner, label in zip(learners, labels):
+
+        # bc_bars
+        y_test, y_pred = regress(learner, res)
+        y_pred_cumsum, y_real_cumsum = Error.bkd_at_each_keyday(y_test, y_pred, ids_test, interp_params)
+
+        bc_bars(y_pred_cumsum, y_real_cumsum)
+
+        
+        # Total Bkd Comparison
+
+    #     cdf = TotalBKDErrorComparison(y_pred_cumsum - y_real_cumsum, interp_params)
+    #     cdfs.append(cdf)
+    #     thinkplot.Cdf(cdf, label=label)
+    #     thinkplot.Config(xlabel='total bkd error', ylabel='CDF')
+    # thinkplot.Show()
+    # CDFofErrorAtEachKeyDay(y_pred_cumsum - y_real_cumsum, interp_params)
+    # TotalBKDErrorComparison(y_pred_cumsum - y_real_cumsum)
